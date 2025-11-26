@@ -84,7 +84,8 @@ function MainTabNavigator() {
   );
 }
 
-// Root Stack Navigator (Login -> Success -> MainTabs)
+// Root Stack Navigator (Login -> MainTabs)
+// After successful login, users are taken directly to the chat interface
 export default function AppNavigator() {
   return (
     <RootStack.Navigator

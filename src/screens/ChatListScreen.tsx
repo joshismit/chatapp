@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
+  Text,
   FlatList,
   StyleSheet,
   TextInput,
@@ -13,89 +14,16 @@ import { ChatStackParamList } from '../navigation/navigationTypes';
 import ChatItem, { ChatItemData } from '../components/chat-list/ChatItem';
 import { listActiveConversations, archiveConversation } from '../services/storage';
 import { loadConversation } from '../services/storage';
+import { getConversations } from '../services/api/conversationService';
+import { seedDataAfterLogin } from '../utils/seedDataHelper';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type ChatListScreenNavigationProp = StackNavigationProp<
   ChatStackParamList,
   'ChatList'
 >;
 
-// Mock data with WhatsApp-like styling
-const mockChats: ChatItemData[] = [
-  {
-    id: '1',
-    userName: 'John Doe',
-    lastMessage: 'Hey, how are you doing today?',
-    timestamp: '2:30 PM',
-    unreadCount: 2,
-    avatarColor: '#25D366',
-  },
-  {
-    id: '2',
-    userName: 'Jane Smith',
-    lastMessage: 'See you tomorrow at the meeting!',
-    timestamp: '1:15 PM',
-    avatarColor: '#128C7E',
-  },
-  {
-    id: '3',
-    userName: 'Bob Johnson',
-    lastMessage: 'Thanks for the help with the project',
-    timestamp: '12:00 PM',
-    unreadCount: 1,
-    avatarColor: '#34B7F1',
-  },
-  {
-    id: '4',
-    userName: 'Alice Williams',
-    lastMessage: 'Are you free tonight for dinner?',
-    timestamp: 'Yesterday',
-    avatarColor: '#F55376',
-  },
-  {
-    id: '5',
-    userName: 'Charlie Brown',
-    lastMessage: 'Great meeting today, let\'s follow up',
-    timestamp: 'Yesterday',
-    avatarColor: '#FF6B6B',
-  },
-  {
-    id: '6',
-    userName: 'Diana Prince',
-    lastMessage: 'The files have been uploaded',
-    timestamp: 'Monday',
-    unreadCount: 5,
-    avatarColor: '#9B59B6',
-  },
-  {
-    id: '7',
-    userName: 'Emma Watson',
-    lastMessage: 'Can we reschedule?',
-    timestamp: 'Monday',
-    avatarColor: '#E67E22',
-  },
-  {
-    id: '8',
-    userName: 'Frank Miller',
-    lastMessage: 'Looking forward to working together',
-    timestamp: 'Sunday',
-    avatarColor: '#3498DB',
-  },
-  {
-    id: '9',
-    userName: 'Grace Kelly',
-    lastMessage: 'The presentation is ready',
-    timestamp: 'Sunday',
-    unreadCount: 3,
-    avatarColor: '#E74C3C',
-  },
-  {
-    id: '10',
-    userName: 'Henry Ford',
-    lastMessage: 'Thanks for your help!',
-    timestamp: 'Saturday',
-    avatarColor: '#16A085',
-  },
-];
+// Mock data removed - now fetching from API
 
 export default function ChatListScreen() {
   const navigation = useNavigation<ChatListScreenNavigationProp>();
@@ -106,52 +34,93 @@ export default function ChatListScreen() {
   const loadConversations = useCallback(async () => {
     try {
       setRefreshing(true);
-      const activeConversations = await listActiveConversations();
       
-      // Convert metadata to chat items
-      const chatItems: ChatItemData[] = await Promise.all(
-        activeConversations.map(async (conv) => {
-          const messages = await loadConversation(conv.conversationId);
-          const lastMessage = messages[0]; // Newest message
+      // Get current user ID from storage (set after login)
+      const currentUserId = await AsyncStorage.getItem('currentUserId');
+      
+      if (!currentUserId) {
+        console.warn('No user ID found, conversations cannot be loaded');
+        setChats([]);
+        return;
+      }
+
+      // Fetch conversations from API
+      const response = await getConversations(currentUserId);
+      
+      if (response.success && response.conversations) {
+        // Convert API response to chat items
+        const chatItems: ChatItemData[] = response.conversations.map((conv) => {
+          // Get the other participant (not current user)
+          const otherParticipant = conv.participants.find(p => p.userId !== currentUserId);
+          const participantUserId = otherParticipant?.userId || '';
           
-          // Extract user name from conversationId or use a default
-          // In a real app, you'd have a user mapping
-          const userName = conv.conversationId.split('_')[0] || 'Unknown User';
+          // Extract display name from participant or use userId
+          const userName = otherParticipant?.displayName || 
+                          participantUserId.replace('user_', '').replace(/_/g, ' ')
+                          .split(' ')
+                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                          .join(' ') || 'Unknown User';
+          
+          // Format timestamp
+          let timestamp = 'Now';
+          if (conv.lastMessage?.timestamp) {
+            const messageDate = new Date(conv.lastMessage.timestamp);
+            const now = new Date();
+            const diffMs = now.getTime() - messageDate.getTime();
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) {
+              timestamp = messageDate.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+              });
+            } else if (diffDays === 1) {
+              timestamp = 'Yesterday';
+            } else if (diffDays < 7) {
+              timestamp = messageDate.toLocaleDateString('en-US', { weekday: 'short' });
+            } else {
+              timestamp = messageDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric'
+              });
+            }
+          }
           
           return {
             id: conv.conversationId,
-            userName: userName.charAt(0).toUpperCase() + userName.slice(1),
-            lastMessage: conv.lastMessage || lastMessage?.text || 'No messages',
-            timestamp: conv.lastMessageTime
-              ? new Date(conv.lastMessageTime).toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                })
-              : 'Now',
-            unreadCount: conv.unreadCount,
+            userName: userName,
+            lastMessage: conv.lastMessage?.text || 'No messages',
+            timestamp: timestamp,
+            unreadCount: conv.unreadCount || 0,
             avatarColor: '#25D366',
           };
-        })
-      );
-
-      // If no conversations, use mock data for preview
-      if (chatItems.length === 0) {
-        setChats(mockChats);
-      } else {
+        });
+        
         setChats(chatItems);
+      } else {
+        setChats([]);
       }
     } catch (error) {
       console.error('Error loading conversations:', error);
-      // Fallback to mock data
-      setChats(mockChats);
+      setChats([]);
     } finally {
       setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    loadConversations();
+    // Check if data has been seeded, if not, seed it
+    const checkAndSeedData = async () => {
+      const dataSeeded = await AsyncStorage.getItem('dataSeeded');
+      if (!dataSeeded) {
+        await seedDataAfterLogin();
+        await AsyncStorage.setItem('dataSeeded', 'true');
+      }
+      loadConversations();
+    };
+    
+    checkAndSeedData();
   }, [loadConversations]);
 
   const handleChatPress = useCallback(
@@ -213,22 +182,31 @@ export default function ChatListScreen() {
           autoCorrect={false}
         />
       </View>
-      <FlatList
-        data={filteredChats}
-        renderItem={renderChatItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={renderSeparator}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#25D366"
-            colors={['#25D366']}
-          />
-        }
-        showsVerticalScrollIndicator={false}
-      />
+      {filteredChats.length === 0 && !refreshing ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No conversations yet</Text>
+          <Text style={styles.emptySubtext}>
+            Pull down to refresh or start a new chat
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredChats}
+          renderItem={renderChatItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={renderSeparator}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#25D366"
+              colors={['#25D366']}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </View>
   );
 }
@@ -260,5 +238,22 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#E4E6EB',
     marginLeft: 84,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 16,
+    color: '#667781',
+    textAlign: 'center',
   },
 });

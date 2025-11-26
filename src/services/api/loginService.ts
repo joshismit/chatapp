@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface LoginRequest {
   token: string;
@@ -27,6 +28,12 @@ export async function loginWithToken(token: string): Promise<LoginResponse> {
     const response = await apiClient.post<LoginResponse>('/api/login', {
       token,
     });
+    
+    // Store userId after successful login
+    if (response.data.success && response.data.userId) {
+      await AsyncStorage.setItem('currentUserId', response.data.userId);
+    }
+    
     return response.data;
   } catch (error: any) {
     const loginError: LoginError = {

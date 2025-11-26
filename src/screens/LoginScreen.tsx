@@ -62,8 +62,8 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
       const response = await loginWithToken(token);
 
       if (response.success) {
-        // Navigate to success screen
-        navigation.replace('Success');
+        // Navigate directly to main chat interface
+        navigation.replace('MainTabs');
       } else {
         throw new Error(response.message || 'Login failed');
       }
@@ -101,22 +101,23 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
             <Text
               style={styles.button}
               onPress={async () => {
-                const testToken = prompt('Enter QR token for testing:');
-                if (testToken) {
-                  setLoading(true);
-                  try {
-                    const response = await loginWithToken(testToken);
-                    if (response.success) {
-                      navigation.replace('Success');
-                    } else {
-                      Alert.alert('Login Error', response.message || 'Login failed');
-                    }
-                  } catch (err: any) {
-                    Alert.alert('Login Error', err.message || 'Failed to login');
-                  } finally {
-                    setLoading(false);
-                  }
-                }
+                 const testToken = prompt('Enter QR token for testing:');
+                 if (testToken) {
+                   setLoading(true);
+                   try {
+                     const response = await loginWithToken(testToken);
+                     if (response.success) {
+                       // Navigate directly to main chat interface
+                       navigation.replace('MainTabs');
+                     } else {
+                       Alert.alert('Login Error', response.message || 'Login failed');
+                     }
+                   } catch (err: any) {
+                     Alert.alert('Login Error', err.message || 'Failed to login');
+                   } finally {
+                     setLoading(false);
+                   }
+                 }
               }}
             >
               Enter Token Manually
