@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
-const API_BASE_URL = 'https://example.com'; // Replace with your API base URL
+const API_BASE_URL = 'http://localhost:3000'; // Mock backend URL
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
