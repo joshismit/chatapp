@@ -5,10 +5,13 @@ import { Ionicons } from '@expo/vector-icons';
 import ChatListScreen from '../screens/ChatListScreen';
 import ArchivedScreen from '../screens/ArchivedScreen';
 import ChatScreen from '../screens/ChatScreen';
-import { ChatStackParamList, RootTabParamList } from './navigationTypes';
+import LoginScreen from '../screens/LoginScreen';
+import SuccessScreen from '../screens/SuccessScreen';
+import { ChatStackParamList, RootTabParamList, RootStackParamList } from './navigationTypes';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const ChatStack = createStackNavigator<ChatStackParamList>();
+const RootStack = createStackNavigator<RootStackParamList>();
 
 // Stack Navigator for ChatList -> ChatScreen
 function ChatStackNavigator() {
@@ -41,7 +44,7 @@ function ChatStackNavigator() {
 }
 
 // Main Tab Navigator
-export default function AppNavigator() {
+function MainTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -78,6 +81,31 @@ export default function AppNavigator() {
         }}
       />
     </Tab.Navigator>
+  );
+}
+
+// Root Stack Navigator (Login -> Success -> MainTabs)
+export default function AppNavigator() {
+  return (
+    <RootStack.Navigator
+      initialRouteName="Login"
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <RootStack.Screen
+        name="Login"
+        component={LoginScreen}
+      />
+      <RootStack.Screen
+        name="Success"
+        component={SuccessScreen}
+      />
+      <RootStack.Screen
+        name="MainTabs"
+        component={MainTabNavigator}
+      />
+    </RootStack.Navigator>
   );
 }
 

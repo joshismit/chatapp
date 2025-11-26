@@ -63,7 +63,7 @@ export default function ChatInput({ onSendMessage, onAttachPress }: ChatInputPro
           textAlignVertical="center"
           accessibilityLabel={t('chatInput.inputLabel')}
           accessibilityHint="Type your message here"
-          accessibilityRole="textbox"
+          accessibilityRole="text"
           accessibilityState={{
             disabled: false,
           }}

@@ -1,9 +1,8 @@
 import { Platform } from 'react-native';
 import { StoredMessage } from '../../types/message';
 
-// Use native EventSource for web, eventsource for React Native
-// This prevents Node.js 'util.inherits' error on web
-// We use a function to get EventSource to prevent static analysis from bundling eventsource for web
+// React Native compatible EventSource implementation
+// Uses native EventSource for web, fetch-based SSE for React Native
 function getEventSource(): any {
   if (Platform.OS === 'web') {
     // Use browser's native EventSource API
@@ -15,24 +14,148 @@ function getEventSource(): any {
     }
     throw new Error('EventSource is not available in this browser');
   } else {
-    // Dynamically require eventsource only for React Native
-    // This prevents it from being bundled for web
+    // For React Native, use a fetch-based EventSource polyfill
+    // This avoids Node.js dependencies that aren't available in React Native
+    return ReactNativeEventSource;
+  }
+}
+
+// React Native compatible EventSource implementation using fetch
+class ReactNativeEventSource {
+  private url: string;
+  private withCredentials: boolean;
+  private readyState: number;
+  private abortController: AbortController | null = null;
+  private onopen: ((event: any) => void) | null = null;
+  private onmessage: ((event: any) => void) | null = null;
+  private onerror: ((event: any) => void) | null = null;
+  private eventListeners: Map<string, ((event: any) => void)[]> = new Map();
+  private isClosed: boolean = false;
+
+  static readonly CONNECTING = 0;
+  static readonly OPEN = 1;
+  static readonly CLOSED = 2;
+
+  constructor(url: string, eventSourceInitDict?: { withCredentials?: boolean }) {
+    this.url = url;
+    this.withCredentials = eventSourceInitDict?.withCredentials ?? false;
+    this.readyState = ReactNativeEventSource.CONNECTING;
+    this.connect();
+  }
+
+  private async connect() {
+    if (this.isClosed) return;
+
     try {
-      // Use a string to prevent static analysis
-      const eventSourceModule = 'eventsource';
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      return require(eventSourceModule);
-    } catch (e) {
-      console.error('Failed to load eventsource for React Native:', e);
-      // Fallback: try eventsource-polyfill
-      try {
-        const polyfillModule = 'eventsource-polyfill';
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        return require(polyfillModule);
-      } catch (e2) {
-        console.error('Failed to load eventsource-polyfill:', e2);
-        throw new Error('EventSource is not available for this platform');
+      this.abortController = new AbortController();
+      const response = await fetch(this.url, {
+        method: 'GET',
+        headers: {
+          Accept: 'text/event-stream',
+          Cache: 'no-cache',
+        },
+        signal: this.abortController.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      if (!response.body) {
+        throw new Error('Response body is null');
+      }
+
+      this.readyState = ReactNativeEventSource.OPEN;
+      this.onopen?.({ type: 'open' });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        if (this.isClosed) {
+          reader.cancel();
+          break;
+        }
+
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          this.readyState = ReactNativeEventSource.CLOSED;
+          this.onerror?.({ type: 'error' });
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        let eventType = 'message';
+        let data = '';
+        let eventId = '';
+
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            eventType = line.substring(6).trim();
+          } else if (line.startsWith('data:')) {
+            data += (data ? '\n' : '') + line.substring(5).trim();
+          } else if (line.startsWith('id:')) {
+            eventId = line.substring(3).trim();
+          } else if (line === '') {
+            if (data) {
+              const event = {
+                type: eventType,
+                data: data,
+                id: eventId || undefined,
+              };
+
+              if (eventType === 'message') {
+                this.onmessage?.(event);
+              }
+
+              const listeners = this.eventListeners.get(eventType);
+              if (listeners) {
+                listeners.forEach((listener) => listener(event));
+              }
+            }
+            eventType = 'message';
+            data = '';
+            eventId = '';
+          }
+        }
+      }
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        // Connection was manually closed
+        return;
+      }
+      this.readyState = ReactNativeEventSource.CLOSED;
+      this.onerror?.({ type: 'error', error });
+    }
+  }
+
+  addEventListener(type: string, listener: (event: any) => void) {
+    if (!this.eventListeners.has(type)) {
+      this.eventListeners.set(type, []);
+    }
+    this.eventListeners.get(type)?.push(listener);
+  }
+
+  removeEventListener(type: string, listener: (event: any) => void) {
+    const listeners = this.eventListeners.get(type);
+    if (listeners) {
+      const index = listeners.indexOf(listener);
+      if (index > -1) {
+        listeners.splice(index, 1);
+      }
+    }
+  }
+
+  close() {
+    this.isClosed = true;
+    this.readyState = ReactNativeEventSource.CLOSED;
+    if (this.abortController) {
+      this.abortController.abort();
     }
   }
 }
