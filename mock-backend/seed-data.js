@@ -3,248 +3,170 @@
  * Usage: node seed-data.js <userId>
  */
 
-require('dotenv').config();
-const connectDB = require('./db/connection');
-const { User, Conversation, Message } = require('./mongodb-schemas');
+require("dotenv").config();
+const connectDB = require("./db/connection");
+const { User, Conversation, Message } = require("./mongodb-schemas");
 
-const userId = process.argv[2] || 'user_1764149384784';
+const userId = process.argv[2] || "user_1764149384784";
 
 async function seedData() {
   try {
-    console.log('🔄 Connecting to MongoDB...');
+    console.log("🔄 Connecting to MongoDB...");
     await connectDB();
 
     console.log(`🌱 Seeding dummy data for user: ${userId}...`);
 
-    // Dummy users
-    const dummyUsers = [
-      { userId: 'user_john', displayName: 'John Doe', avatar: null },
-      { userId: 'user_jane', displayName: 'Jane Smith', avatar: null },
-      { userId: 'user_bob', displayName: 'Bob Johnson', avatar: null },
-      { userId: 'user_alice', displayName: 'Alice Williams', avatar: null },
-      { userId: 'user_charlie', displayName: 'Charlie Brown', avatar: null },
-      { userId: 'user_diana', displayName: 'Diana Prince', avatar: null },
-      { userId: 'user_emma', displayName: 'Emma Watson', avatar: null },
-      { userId: 'user_frank', displayName: 'Frank Miller', avatar: null },
-      { userId: 'user_grace', displayName: 'Grace Kelly', avatar: null },
-      { userId: 'user_henry', displayName: 'Henry Ford', avatar: null },
-    ];
+    // Get existing users from database (excluding current user)
+    console.log("👥 Fetching users from database...");
+    const existingUsers = await User.find({ userId: { $ne: userId } }).limit(
+      10
+    );
 
-    // Create or update dummy users
-    console.log('👥 Creating users...');
-    for (const userData of dummyUsers) {
-      await User.findOneAndUpdate(
-        { userId: userData.userId },
-        userData,
-        { upsert: true, new: true }
+    if (existingUsers.length === 0) {
+      console.log("⚠️  No users found in database. Please create users first.");
+      process.exit(0);
+    }
+
+    console.log(`✅ Found ${existingUsers.length} users in database`);
+
+    // Get existing conversations and messages from database
+    console.log("💬 Fetching conversations from database...");
+    const existingConversations = await Conversation.find({
+      "participants.userId": userId,
+    }).limit(10);
+
+    // If no conversations exist, create them using existing users
+    let conversationsToProcess = [];
+
+    if (existingConversations.length === 0) {
+      console.log(
+        "📝 No conversations found. Creating conversations from existing users..."
+      );
+
+      // Get existing messages from database
+      console.log("📨 Fetching messages from database...");
+      const dbMessages = await Message.find().sort({ createdAt: -1 }).limit(10);
+
+      for (let i = 0; i < Math.min(existingUsers.length, 10); i++) {
+        const otherUser = existingUsers[i];
+        const hoursAgo = (i + 1) * 2;
+
+        // Get a message from database for this user, or use a default
+        const userMessage = dbMessages.find(
+          (msg) => msg.senderId === otherUser.userId
+        );
+
+        conversationsToProcess.push({
+          conversationId: `conv_${i + 1}_${Date.now()}`,
+          participants: [
+            {
+              userId: userId,
+              joinedAt: new Date(),
+              isArchived: false,
+              isMuted: false,
+            },
+            {
+              userId: otherUser.userId,
+              joinedAt: new Date(),
+              isArchived: false,
+              isMuted: false,
+            },
+          ],
+          type: "direct",
+          createdBy: userId,
+          lastMessage: {
+            messageId: `msg_${i + 1}_${Date.now()}`,
+            text: userMessage
+              ? userMessage.text
+              : `Hello from ${otherUser.displayName}`,
+            senderId: otherUser.userId,
+            timestamp: userMessage
+              ? userMessage.createdAt
+              : new Date(Date.now() - hoursAgo * 60 * 60 * 1000),
+          },
+          unreadCount: new Map(
+            i % 3 === 0 ? [[userId, Math.floor(Math.random() * 5) + 1]] : []
+          ),
+        });
+      }
+    } else {
+      console.log(
+        `✅ Found ${existingConversations.length} existing conversations`
+      );
+      conversationsToProcess = existingConversations.map((conv) =>
+        conv.toObject()
       );
     }
-    console.log(`✅ Created ${dummyUsers.length} users`);
 
-    // Dummy conversations with messages
-    const dummyConversations = [
-      {
-        conversationId: 'conv_1',
-        participants: [
-          { userId: userId, joinedAt: new Date(), isArchived: false, isMuted: false },
-          { userId: 'user_john', joinedAt: new Date(), isArchived: false, isMuted: false }
-        ],
-        type: 'direct',
-        createdBy: userId,
-        lastMessage: {
-          messageId: 'msg_1_1',
-          text: 'Hey, how are you doing today?',
-          senderId: 'user_john',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000)
-        },
-        unreadCount: new Map([[userId, 2]])
-      },
-      {
-        conversationId: 'conv_2',
-        participants: [
-          { userId: userId, joinedAt: new Date(), isArchived: false, isMuted: false },
-          { userId: 'user_jane', joinedAt: new Date(), isArchived: false, isMuted: false }
-        ],
-        type: 'direct',
-        createdBy: userId,
-        lastMessage: {
-          messageId: 'msg_2_1',
-          text: 'See you tomorrow at the meeting!',
-          senderId: 'user_jane',
-          timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000)
-        },
-        unreadCount: new Map()
-      },
-      {
-        conversationId: 'conv_3',
-        participants: [
-          { userId: userId, joinedAt: new Date(), isArchived: false, isMuted: false },
-          { userId: 'user_bob', joinedAt: new Date(), isArchived: false, isMuted: false }
-        ],
-        type: 'direct',
-        createdBy: userId,
-        lastMessage: {
-          messageId: 'msg_3_1',
-          text: 'Thanks for the help with the project',
-          senderId: 'user_bob',
-          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000)
-        },
-        unreadCount: new Map([[userId, 1]])
-      },
-      {
-        conversationId: 'conv_4',
-        participants: [
-          { userId: userId, joinedAt: new Date(), isArchived: false, isMuted: false },
-          { userId: 'user_alice', joinedAt: new Date(), isArchived: false, isMuted: false }
-        ],
-        type: 'direct',
-        createdBy: userId,
-        lastMessage: {
-          messageId: 'msg_4_1',
-          text: 'Are you free tonight for dinner?',
-          senderId: 'user_alice',
-          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000)
-        },
-        unreadCount: new Map()
-      },
-      {
-        conversationId: 'conv_5',
-        participants: [
-          { userId: userId, joinedAt: new Date(), isArchived: false, isMuted: false },
-          { userId: 'user_charlie', joinedAt: new Date(), isArchived: false, isMuted: false }
-        ],
-        type: 'direct',
-        createdBy: userId,
-        lastMessage: {
-          messageId: 'msg_5_1',
-          text: 'Great meeting today, let\'s follow up',
-          senderId: 'user_charlie',
-          timestamp: new Date(Date.now() - 25 * 60 * 60 * 1000)
-        },
-        unreadCount: new Map()
-      },
-      {
-        conversationId: 'conv_6',
-        participants: [
-          { userId: userId, joinedAt: new Date(), isArchived: false, isMuted: false },
-          { userId: 'user_diana', joinedAt: new Date(), isArchived: false, isMuted: false }
-        ],
-        type: 'direct',
-        createdBy: userId,
-        lastMessage: {
-          messageId: 'msg_6_1',
-          text: 'The files have been uploaded',
-          senderId: 'user_diana',
-          timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
-        },
-        unreadCount: new Map([[userId, 5]])
-      },
-      {
-        conversationId: 'conv_7',
-        participants: [
-          { userId: userId, joinedAt: new Date(), isArchived: false, isMuted: false },
-          { userId: 'user_emma', joinedAt: new Date(), isArchived: false, isMuted: false }
-        ],
-        type: 'direct',
-        createdBy: userId,
-        lastMessage: {
-          messageId: 'msg_7_1',
-          text: 'Can we reschedule?',
-          senderId: 'user_emma',
-          timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
-        },
-        unreadCount: new Map()
-      },
-      {
-        conversationId: 'conv_8',
-        participants: [
-          { userId: userId, joinedAt: new Date(), isArchived: false, isMuted: false },
-          { userId: 'user_frank', joinedAt: new Date(), isArchived: false, isMuted: false }
-        ],
-        type: 'direct',
-        createdBy: userId,
-        lastMessage: {
-          messageId: 'msg_8_1',
-          text: 'Looking forward to working together',
-          senderId: 'user_frank',
-          timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-        },
-        unreadCount: new Map()
-      },
-      {
-        conversationId: 'conv_9',
-        participants: [
-          { userId: userId, joinedAt: new Date(), isArchived: false, isMuted: false },
-          { userId: 'user_grace', joinedAt: new Date(), isArchived: false, isMuted: false }
-        ],
-        type: 'direct',
-        createdBy: userId,
-        lastMessage: {
-          messageId: 'msg_9_1',
-          text: 'The presentation is ready',
-          senderId: 'user_grace',
-          timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-        },
-        unreadCount: new Map([[userId, 3]])
-      },
-      {
-        conversationId: 'conv_10',
-        participants: [
-          { userId: userId, joinedAt: new Date(), isArchived: false, isMuted: false },
-          { userId: 'user_henry', joinedAt: new Date(), isArchived: false, isMuted: false }
-        ],
-        type: 'direct',
-        createdBy: userId,
-        lastMessage: {
-          messageId: 'msg_10_1',
-          text: 'Thanks for your help!',
-          senderId: 'user_henry',
-          timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)
-        },
-        unreadCount: new Map()
-      },
-    ];
+    // Create or update conversations
+    console.log("💬 Processing conversations...");
+    let createdCount = 0;
+    let existingCount = 0;
 
-    // Create conversations
-    console.log('💬 Creating conversations...');
-    for (const convData of dummyConversations) {
-      await Conversation.findOneAndUpdate(
-        { conversationId: convData.conversationId },
-        convData,
-        { upsert: true, new: true }
-      );
+    for (const convData of conversationsToProcess) {
+      const existingConv = await Conversation.findOne({
+        conversationId: convData.conversationId,
+      });
 
-      // Create a sample message for each conversation
-      await Message.findOneAndUpdate(
-        { messageId: convData.lastMessage.messageId },
-        {
-          messageId: convData.lastMessage.messageId,
-          conversationId: convData.conversationId,
-          senderId: convData.lastMessage.senderId,
-          text: convData.lastMessage.text,
-          type: 'text',
-          status: 'delivered',
-          createdAt: convData.lastMessage.timestamp,
-          updatedAt: convData.lastMessage.timestamp
-        },
-        { upsert: true, new: true }
-      );
+      if (!existingConv) {
+        await Conversation.findOneAndUpdate(
+          { conversationId: convData.conversationId },
+          convData,
+          { upsert: true, new: true }
+        );
+        createdCount++;
+
+        // Create a sample message for new conversations
+        if (convData.lastMessage) {
+          await Message.findOneAndUpdate(
+            { messageId: convData.lastMessage.messageId },
+            {
+              messageId: convData.lastMessage.messageId,
+              conversationId: convData.conversationId,
+              senderId: convData.lastMessage.senderId,
+              text: convData.lastMessage.text,
+              type: "text",
+              status: "delivered",
+              createdAt: convData.lastMessage.timestamp,
+              updatedAt: convData.lastMessage.timestamp,
+            },
+            { upsert: true, new: true }
+          );
+        }
+      } else {
+        existingCount++;
+      }
     }
-    console.log(`✅ Created ${dummyConversations.length} conversations with messages`);
 
-    console.log('\n✨ Dummy data seeded successfully!');
+    // Get existing messages count for all conversations
+    const conversationIds = conversationsToProcess.map((c) => c.conversationId);
+    const existingMessages = await Message.find({
+      conversationId: { $in: conversationIds },
+    });
+
+    console.log(`✅ Processed ${conversationsToProcess.length} conversations`);
+    if (createdCount > 0) {
+      console.log(`   - Created: ${createdCount}`);
+    }
+    if (existingCount > 0) {
+      console.log(`   - Already existed: ${existingCount}`);
+    }
+    console.log(`   - Messages found: ${existingMessages.length}`);
+
+    console.log("\n✨ Data processing completed successfully!");
     console.log(`📊 Summary:`);
-    console.log(`   - Users created: ${dummyUsers.length}`);
-    console.log(`   - Conversations created: ${dummyConversations.length}`);
-    console.log(`   - Messages created: ${dummyConversations.length}`);
+    console.log(`   - Users found in database: ${existingUsers.length}`);
+    console.log(
+      `   - Conversations processed: ${conversationsToProcess.length}`
+    );
+    console.log(`   - Messages in database: ${existingMessages.length}`);
     console.log(`\n🎉 You can now see the chats in your app!`);
 
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error seeding data:', error);
+    console.error("❌ Error seeding data:", error);
     process.exit(1);
   }
 }
 
 seedData();
-
