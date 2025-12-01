@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { sendMessage, retrySendMessage, SendMessageError } from '../services/api/messageService';
+import { sendMessage } from '../services/api/messageService';
 import { saveConversation } from '../services/storage';
 import { StoredMessage } from '../types/message';
 import { messageToStoredMessage } from '../utils/messageConverter';
@@ -14,7 +14,7 @@ interface UseMessageSenderOptions {
 
 interface SendMessageResult {
   success: boolean;
-  error?: SendMessageError;
+  error?: { message: string; code?: string };
 }
 
 /**
@@ -115,17 +115,17 @@ export function useMessageSender({
         const response = await sendMessage({
           conversationId,
           text: messageText,
-          senderId,
+          type: 'text',
         });
 
         // On success: update status to "sent" and replace temp ID with server ID
         const serverStoredMessage: StoredMessage = {
-          id: response.messageId,
-          text: response.text,
-          senderId: response.senderId,
-          createdAt: response.createdAt,
+          id: response.message.messageId,
+          text: response.message.text,
+          senderId: response.message.senderId,
+          createdAt: response.message.createdAt,
           status: 'sent',
-          serverId: response.messageId,
+          serverId: response.message.messageId,
         };
 
         await replaceTempMessage(tempId, serverStoredMessage);
@@ -133,7 +133,7 @@ export function useMessageSender({
         return { success: true };
       } catch (error: any) {
         // On failure: mark as "failed"
-        const errorMessage: SendMessageError = {
+        const errorMessage = {
           message: error.message || 'Failed to send message',
           code: error.code,
         };
@@ -170,20 +170,20 @@ export function useMessageSender({
         const storedMessage = messageToStoredMessage(failedMessage, senderId);
 
         // Retry sending
-        const response = await retrySendMessage(
-          storedMessage,
+        const response = await sendMessage({
           conversationId,
-          senderId
-        );
+          text: storedMessage.text,
+          type: 'text',
+        });
 
         // On success: update with server response
         const serverStoredMessage: StoredMessage = {
-          id: response.messageId,
-          text: response.text,
-          senderId: response.senderId,
-          createdAt: response.createdAt,
+          id: response.message.messageId,
+          text: response.message.text,
+          senderId: response.message.senderId,
+          createdAt: response.message.createdAt,
           status: 'sent',
-          serverId: response.messageId,
+          serverId: response.message.messageId,
         };
 
         await replaceTempMessage(failedMessage.id, serverStoredMessage);
@@ -191,7 +191,7 @@ export function useMessageSender({
         return { success: true };
       } catch (error: any) {
         // On failure: mark as "failed" again
-        const errorMessage: SendMessageError = {
+        const errorMessage = {
           message: error.message || 'Failed to retry message',
           code: error.code,
         };

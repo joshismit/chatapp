@@ -11,7 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
-import { ChatStackParamList } from '../navigation/navigationTypes';
+import { ChatStackParamList } from '../types/navigation';
 import { listArchivedConversations, unarchiveConversation } from '../services/storage';
 import { ConversationMetadata } from '../types/message';
 import { loadConversation } from '../services/storage';

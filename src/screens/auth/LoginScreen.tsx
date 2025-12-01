@@ -9,8 +9,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StackScreenProps } from '@react-navigation/stack';
-import { RootStackParamList } from '../types/navigation';
-import { loginWithToken } from '../services/api/loginService';
+import { RootStackParamList } from '../../types/navigation';
+import { loginWithToken } from '../../services/api/loginService';
 
 // Conditionally import CameraView only for native platforms
 let CameraView: any;

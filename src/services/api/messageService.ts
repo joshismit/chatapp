@@ -1,108 +1,162 @@
-import apiClient from './client';
-import { StoredMessage } from '../../types/message';
+/**
+ * Message Service
+ * Handles sending and receiving messages
+ */
+
+import { apiClient } from './client';
 
 export interface SendMessageRequest {
   conversationId: string;
   text: string;
-  senderId: string;
+  type?: 'text' | 'image' | 'video' | 'audio' | 'file' | 'location';
+  replyTo?: string | null;
+}
+
+export interface MessageSender {
+  userId: string;
+  displayName: string;
+  avatar?: string | null;
 }
 
 export interface SendMessageResponse {
-  messageId: string;
-  conversationId: string;
-  text: string;
-  senderId: string;
-  createdAt: string;
-  status: 'sent';
+  success: boolean;
+  message: {
+    messageId: string;
+    conversationId: string;
+    senderId: string;
+    sender: MessageSender;
+    text: string;
+    type: string;
+    status: 'sending' | 'sent' | 'delivered' | 'read';
+    replyTo: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
+  message: string;
 }
 
-export interface SendMessageError {
+export interface ServerMessage {
+  messageId: string;
+  conversationId: string;
+  senderId: string;
+  sender: MessageSender;
+  text: string;
+  type: string;
+  status: 'sending' | 'sent' | 'delivered' | 'read';
+  replyTo: string | null;
+  reactions: Array<{
+    userId: string;
+    emoji: string;
+    createdAt: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetMessagesResponse {
+  success: boolean;
+  messages: ServerMessage[];
+  total: number;
+  hasMore: boolean;
   message: string;
-  code?: string;
+}
+
+export interface UpdateMessageStatusRequest {
+  status: 'delivered' | 'read';
+}
+
+export interface UpdateMessageStatusResponse {
+  success: boolean;
+  message: {
+    messageId: string;
+    status: string;
+  };
+  message: string;
+}
+
+export interface MarkAsReadResponse {
+  success: boolean;
+  message: string;
 }
 
 /**
- * Send a message to the server
+ * Send a message
  */
 export async function sendMessage(
   request: SendMessageRequest
 ): Promise<SendMessageResponse> {
   try {
     const response = await apiClient.post<SendMessageResponse>(
-      '/api/messages/send',
+      '/api/chat/messages',
       request
     );
     return response.data;
   } catch (error: any) {
-    const errorMessage: SendMessageError = {
-      message: error.response?.data?.message || error.message || 'Failed to send message',
-      code: error.response?.status?.toString() || error.code,
-    };
-    throw errorMessage;
+    throw new Error(
+      error.response?.data?.message || error.message || 'Failed to send message'
+    );
   }
 }
 
 /**
- * Retry sending a failed message
+ * Get messages for a conversation
  */
-export async function retrySendMessage(
-  message: StoredMessage,
+export async function getMessages(
   conversationId: string,
-  senderId: string
-): Promise<SendMessageResponse> {
-  return sendMessage({
-    conversationId,
-    text: message.text,
-    senderId,
-  });
-}
-
-export interface FetchMessagesRequest {
-  conversationId: string;
-  before?: string; // ISO timestamp for pagination
-  limit?: number; // Number of messages to fetch (default: 20)
-}
-
-export interface FetchMessagesResponse {
-  messages: Array<{
-    id: string;
-    text: string;
-    senderId: string;
-    createdAt: string;
-    status: 'sent' | 'delivered' | 'read';
-  }>;
-  hasMore: boolean; // Whether more messages are available
-}
-
-/**
- * Fetch older messages from the server
- */
-export async function fetchOlderMessages(
-  request: FetchMessagesRequest
-): Promise<FetchMessagesResponse> {
+  limit: number = 50,
+  offset: number = 0,
+  before?: string
+): Promise<GetMessagesResponse> {
   try {
-    const params = new URLSearchParams({
-      conversationId: request.conversationId,
-      limit: (request.limit || 20).toString(),
-    });
+    const params: any = { limit, offset };
+    if (before) params.before = before;
 
-    if (request.before) {
-      params.append('before', request.before);
-    }
-
-    const response = await apiClient.get<FetchMessagesResponse>(
-      `/api/messages?${params.toString()}`
+    const response = await apiClient.get<GetMessagesResponse>(
+      `/api/chat/conversations/${conversationId}/messages`,
+      { params }
     );
     return response.data;
   } catch (error: any) {
-    const errorMessage: SendMessageError = {
-      message:
-        error.response?.data?.message ||
-        error.message ||
-        'Failed to fetch messages',
-      code: error.response?.status?.toString() || error.code,
-    };
-    throw errorMessage;
+    throw new Error(
+      error.response?.data?.message || error.message || 'Failed to fetch messages'
+    );
   }
 }
 
+/**
+ * Update message status (delivered or read)
+ */
+export async function updateMessageStatus(
+  messageId: string,
+  status: 'delivered' | 'read'
+): Promise<UpdateMessageStatusResponse> {
+  try {
+    const response = await apiClient.put<UpdateMessageStatusResponse>(
+      `/api/chat/messages/${messageId}/status`,
+      { status }
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 'Failed to update message status'
+    );
+  }
+}
+
+/**
+ * Mark conversation as read
+ */
+export async function markConversationAsRead(
+  conversationId: string
+): Promise<MarkAsReadResponse> {
+  try {
+    const response = await apiClient.post<MarkAsReadResponse>(
+      `/api/chat/conversations/${conversationId}/read`
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 'Failed to mark conversation as read'
+    );
+  }
+}

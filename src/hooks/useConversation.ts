@@ -10,8 +10,7 @@ import {
 import { updateMessageStatus } from '../services/storage/messageStatus';
 import { storedMessageToMessage, messageToStoredMessage } from '../utils/messageConverter';
 import { subscribeToSSE, SSESubscription } from '../services/sse';
-import { fetchOlderMessages } from '../services/api/messageService';
-import { sendMessage as sendMessageAPI, SendMessageError } from '../services/api/messageService';
+import { getMessages, sendMessage as sendMessageAPI } from '../services/api/messageService';
 import { StoredMessage } from '../types/message';
 import { Message } from '../components/chat/MessageBubble';
 
@@ -216,28 +215,28 @@ export function useConversation(
       await persistMessages(updatedMessages);
 
       try {
-        const response = await sendMessageAPI({
-          conversationId,
-          text,
-          senderId,
-        });
+      const response = await sendMessageAPI({
+        conversationId,
+        text,
+        type: 'text',
+      });
 
-        // Update with server response
-        const serverStoredMessage: StoredMessage = {
-          id: response.messageId,
-          text: response.text,
-          senderId: response.senderId,
-          createdAt: response.createdAt,
-          status: 'sent',
-          serverId: response.messageId,
-        };
+      // Update with server response
+      const serverStoredMessage: StoredMessage = {
+        id: response.message.messageId,
+        text: response.message.text,
+        senderId: response.message.senderId,
+        createdAt: response.message.createdAt,
+        status: 'sent',
+        serverId: response.message.messageId,
+      };
 
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === tempId
               ? {
                   ...msg,
-                  id: response.messageId,
+                  id: response.message.messageId,
                   status: 'sent',
                 }
               : msg
@@ -292,16 +291,16 @@ export function useConversation(
         const response = await sendMessageAPI({
           conversationId,
           text: storedMessage.text,
-          senderId,
+          type: 'text',
         });
 
         const serverStoredMessage: StoredMessage = {
-          id: response.messageId,
-          text: response.text,
-          senderId: response.senderId,
-          createdAt: response.createdAt,
+          id: response.message.messageId,
+          text: response.message.text,
+          senderId: response.message.senderId,
+          createdAt: response.message.createdAt,
           status: 'sent',
-          serverId: response.messageId,
+          serverId: response.message.messageId,
         };
 
         setMessages((prev) =>
@@ -360,24 +359,25 @@ export function useConversation(
         return;
       }
 
-      const response = await fetchOlderMessages({
+      const response = await getMessages(
         conversationId,
-        before: oldestTimestamp,
-        limit: PAGINATION_LIMIT,
-      });
+        PAGINATION_LIMIT,
+        messages.length,
+        oldestTimestamp
+      );
 
-      if (response.messages.length === 0) {
+      if (!response.success || response.messages.length === 0) {
         setHasMoreMessages(false);
         return;
       }
 
       const storedMessages: StoredMessage[] = response.messages.map((msg) => ({
-        id: msg.id,
+        id: msg.messageId,
         text: msg.text,
         senderId: msg.senderId,
         createdAt: msg.createdAt,
-        status: msg.status,
-        serverId: msg.id,
+        status: msg.status as 'sent' | 'delivered' | 'read',
+        serverId: msg.messageId,
       }));
 
       await prependMessages(conversationId, storedMessages);

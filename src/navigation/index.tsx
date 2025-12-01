@@ -2,12 +2,11 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
-import ChatListScreen from '../screens/ChatListScreen';
+import { ChatListScreen, ChatScreen } from '../screens/chat';
+import { LoginScreen } from '../screens/auth';
 import ArchivedScreen from '../screens/ArchivedScreen';
-import ChatScreen from '../screens/ChatScreen';
-import LoginScreen from '../screens/LoginScreen';
 import SuccessScreen from '../screens/SuccessScreen';
-import { ChatStackParamList, RootTabParamList, RootStackParamList } from './navigationTypes';
+import { ChatStackParamList, RootTabParamList, RootStackParamList } from '../types/navigation';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const ChatStack = createStackNavigator<ChatStackParamList>();

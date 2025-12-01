@@ -1,10 +1,10 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
-
-const API_BASE_URL = 'http://localhost:3000'; // Mock backend URL
+import { API_BASE_URL, API_TIMEOUT } from '../../app/config/api';
+import { STORAGE_KEYS } from '../../app/constants';
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,7 +16,7 @@ apiClient.interceptors.request.use(
     // Add auth token if available
     try {
       const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-      const token = await AsyncStorage.getItem('authToken');
+      const token = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -51,4 +51,3 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
-

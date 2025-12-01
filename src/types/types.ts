@@ -8,12 +8,18 @@
 
 export interface User {
   id: string;
-  username: string;
+  userId: string; // Backend uses userId
+  username?: string;
   displayName?: string;
   avatarUrl?: string;
+  avatar?: string | null; // Backend uses avatar
   email?: string;
+  phoneNumber?: string;
   isOnline?: boolean;
   lastSeen?: string; // ISO timestamp
+  status?: string; // User status message
+  isRegistered?: boolean;
+  registrationMethod?: 'phone' | 'email' | 'qr';
 }
 
 // ============================================================================
@@ -55,11 +61,26 @@ export interface UIMessage {
  * Message from server API
  */
 export interface ServerMessage {
-  id: string;
+  id?: string; // Legacy
+  messageId: string; // Backend uses messageId
+  conversationId: string;
   text: string;
   senderId: string;
+  sender?: {
+    userId: string;
+    displayName: string;
+    avatar?: string | null;
+  };
+  type?: 'text' | 'image' | 'video' | 'audio' | 'file' | 'location';
   createdAt: string; // ISO 8601 format
-  status: 'sent' | 'delivered' | 'read';
+  updatedAt?: string;
+  status: 'sending' | 'sent' | 'delivered' | 'read';
+  replyTo?: string | null;
+  reactions?: Array<{
+    userId: string;
+    emoji: string;
+    createdAt: string;
+  }>;
 }
 
 /**

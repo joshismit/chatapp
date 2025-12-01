@@ -10,20 +10,17 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { ChatStackParamList } from '../types/navigation';
-import ChatItem, { ChatItemData } from '../components/chat-list/ChatItem';
-import { listActiveConversations, archiveConversation } from '../services/storage';
-import { loadConversation } from '../services/storage';
-import { getConversations } from '../services/api/conversationService';
-import { seedDataAfterLogin } from '../utils/seedDataHelper';
+import { ChatStackParamList } from '../../types/navigation';
+import { ChatItem, ChatItemData } from '../../components/chat-list';
+import { getConversations } from '../../services/api/conversationService';
+import { seedDataAfterLogin } from '../../utils/seedDataHelper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '../../app/constants';
 
 type ChatListScreenNavigationProp = StackNavigationProp<
   ChatStackParamList,
   'ChatList'
 >;
-
-// Mock data removed - now fetching from API
 
 export default function ChatListScreen() {
   const navigation = useNavigation<ChatListScreenNavigationProp>();
@@ -96,10 +93,10 @@ export default function ChatListScreen() {
   useEffect(() => {
     // Check if data has been seeded, if not, seed it
     const checkAndSeedData = async () => {
-      const dataSeeded = await AsyncStorage.getItem('dataSeeded');
+      const dataSeeded = await AsyncStorage.getItem(STORAGE_KEYS.DATA_SEEDED);
       if (!dataSeeded) {
         await seedDataAfterLogin();
-        await AsyncStorage.setItem('dataSeeded', 'true');
+        await AsyncStorage.setItem(STORAGE_KEYS.DATA_SEEDED, 'true');
       }
       loadConversations();
     };
@@ -122,7 +119,8 @@ export default function ChatListScreen() {
   const handleArchive = useCallback(
     async (conversationId: string) => {
       try {
-        await archiveConversation(conversationId);
+        // TODO: Implement archive functionality with new API
+        // await archiveConversation(conversationId);
         // Reload conversations to remove archived one
         await loadConversations();
       } catch (error) {
@@ -241,3 +239,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
