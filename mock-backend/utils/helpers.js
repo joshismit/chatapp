@@ -68,15 +68,45 @@ const validatePhoneNumber = (phoneNumber) => {
 };
 
 /**
+ * Validate email format
+ * @param {string} email - Email to validate
+ * @returns {boolean} True if valid
+ */
+const validateEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+/**
  * Generate user ID
- * @param {string} phoneNumber - Optional phone number
+ * @param {string} identifier - Optional identifier (phone or email)
  * @returns {string} User ID
  */
-const generateUserId = (phoneNumber = null) => {
-  if (phoneNumber) {
+const generateUserId = (identifier = null) => {
+  if (identifier) {
     return `user_${Date.now()}_${generateToken(8)}`;
   }
   return `user_${Date.now()}`;
+};
+
+/**
+ * Generate conversation ID
+ * @param {string} userId1 - First user ID
+ * @param {string} userId2 - Second user ID
+ * @returns {string} Conversation ID
+ */
+const generateConversationId = (userId1, userId2) => {
+  // Sort user IDs to ensure consistent conversation ID
+  const sorted = [userId1, userId2].sort();
+  return `conv_${sorted[0]}_${sorted[1]}`;
+};
+
+/**
+ * Generate message ID
+ * @returns {string} Message ID
+ */
+const generateMessageId = () => {
+  return `msg_${Date.now()}_${generateToken(12)}`;
 };
 
 module.exports = {
@@ -87,6 +117,9 @@ module.exports = {
   generateOTP,
   normalizePhoneNumber,
   validatePhoneNumber,
+  validateEmail,
   generateUserId,
+  generateConversationId,
+  generateMessageId,
 };
 

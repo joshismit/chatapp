@@ -9,7 +9,11 @@ const otpRoutes = require("./otpRoutes");
 const qrRoutes = require("./qrRoutes");
 const authRoutes = require("./authRoutes");
 const userRoutes = require("./userRoutes");
+const registrationRoutes = require("./registrationRoutes");
+const chatRoutes = require("./chatRoutes");
 const { legacyLogin } = require("../controllers/authController");
+const { validateRequired } = require("../middleware/validator");
+const { asyncHandler } = require("../middleware/errorHandler");
 
 // Health check endpoint
 router.get("/health", (req, res) => {
@@ -17,12 +21,18 @@ router.get("/health", (req, res) => {
 });
 
 // Legacy login endpoint (for backward compatibility) - at /api/login
-router.post("/login", legacyLogin);
+router.post(
+  "/login",
+  validateRequired(["token"]),
+  asyncHandler(legacyLogin)
+);
 
 // Mount route modules
-router.use("/otp", otpRoutes);
+router.use("/register", registrationRoutes); // Registration routes
+router.use("/otp", otpRoutes); // Login OTP routes
 router.use("/qr", qrRoutes);
 router.use("/auth", authRoutes);
+router.use("/chat", chatRoutes); // Chat routes (conversations, messages, status)
 router.use("/", userRoutes); // User routes at root level
 
 module.exports = router;

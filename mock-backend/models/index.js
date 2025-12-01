@@ -22,10 +22,28 @@ const userSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
+    email: {
+      type: String,
+      sparse: true,
+      unique: true,
+      index: true,
+      lowercase: true,
+      trim: true,
+    },
     displayName: {
       type: String,
       required: true,
       trim: true,
+    },
+    isRegistered: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    registrationMethod: {
+      type: String,
+      enum: ["phone", "email", "qr"],
+      default: null,
     },
     avatar: {
       type: String,
@@ -217,18 +235,30 @@ const qrCodeSchema = new mongoose.Schema(
 qrCodeSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // ============================================
-// 5. OTP SCHEMA (For Mobile Login)
+// 5. OTP SCHEMA (For Registration and Login)
 // ============================================
 const otpSchema = new mongoose.Schema(
   {
     phoneNumber: {
       type: String,
-      required: true,
+      sparse: true,
+      index: true,
+    },
+    email: {
+      type: String,
+      sparse: true,
+      lowercase: true,
       index: true,
     },
     otp: {
       type: String,
       required: true,
+    },
+    type: {
+      type: String,
+      enum: ["registration", "login"],
+      default: "login",
+      index: true,
     },
     expiresAt: {
       type: Date,
@@ -260,8 +290,130 @@ const otpSchema = new mongoose.Schema(
 
 // TTL index for expired OTPs
 otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-// Compound index for phone number and unused OTPs
+// Compound indexes for phone/email and unused OTPs
 otpSchema.index({ phoneNumber: 1, isUsed: 1, expiresAt: 1 });
+otpSchema.index({ email: 1, isUsed: 1, expiresAt: 1 });
+// Ensure either phoneNumber or email is provided
+otpSchema.pre("validate", function (next) {
+  if (!this.phoneNumber && !this.email) {
+    return next(new Error("Either phoneNumber or email must be provided"));
+  }
+  if (this.phoneNumber && this.email) {
+    return next(new Error("Cannot provide both phoneNumber and email"));
+  }
+  next();
+});
+
+// ============================================
+// 6. CONVERSATION SCHEMA (Chat Sessions)
+// ============================================
+const conversationSchema = new mongoose.Schema(
+  {
+    conversationId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    participants: [
+      {
+        userId: {
+          type: String,
+          required: true,
+        },
+        joinedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        isArchived: {
+          type: Boolean,
+          default: false,
+        },
+        isMuted: {
+          type: Boolean,
+          default: false,
+        },
+        lastReadMessageId: {
+          type: String,
+          default: null,
+        },
+        lastReadAt: {
+          type: Date,
+          default: null,
+        },
+      },
+    ],
+    type: {
+      type: String,
+      enum: ["direct", "group"],
+      default: "direct",
+    },
+    createdBy: {
+      type: String,
+      required: true,
+    },
+    lastMessage: {
+      messageId: String,
+      text: String,
+      senderId: String,
+      timestamp: Date,
+      status: String,
+    },
+    unreadCount: {
+      type: Map,
+      of: Number,
+      default: new Map(),
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  {
+    timestamps: true,
+    collection: "conversations",
+  }
+);
+
+// Indexes for efficient queries
+conversationSchema.index({ "participants.userId": 1, updatedAt: -1 });
+conversationSchema.index({ conversationId: 1 });
+
+// ============================================
+// 7. TYPING INDICATOR SCHEMA
+// ============================================
+const typingIndicatorSchema = new mongoose.Schema(
+  {
+    conversationId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    userId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    isTyping: {
+      type: Boolean,
+      default: false,
+    },
+    expiresAt: {
+      type: Date,
+      required: true,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+    collection: "typing_indicators",
+  }
+);
+
+// TTL index for auto-cleanup
+typingIndicatorSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+// Compound index
+typingIndicatorSchema.index({ conversationId: 1, userId: 1 });
 
 // ============================================
 // EXPORT MODELS
@@ -271,6 +423,8 @@ const Message = mongoose.model("Message", messageSchema);
 const AuthToken = mongoose.model("AuthToken", authTokenSchema);
 const QRCode = mongoose.model("QRCode", qrCodeSchema);
 const OTP = mongoose.model("OTP", otpSchema);
+const Conversation = mongoose.model("Conversation", conversationSchema);
+const TypingIndicator = mongoose.model("TypingIndicator", typingIndicatorSchema);
 
 module.exports = {
   User,
@@ -278,5 +432,7 @@ module.exports = {
   AuthToken,
   QRCode,
   OTP,
+  Conversation,
+  TypingIndicator,
 };
 

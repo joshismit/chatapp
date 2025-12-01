@@ -3,7 +3,7 @@
  * Handles authentication and token management
  */
 
-const { User, AuthToken } = require("../models");
+const { User, AuthToken, TypingIndicator } = require("../models");
 const constants = require("../config/constants");
 const {
   generateTestToken,
@@ -166,9 +166,47 @@ const verifyToken = async (req, res) => {
   }
 };
 
+/**
+ * Logout user
+ */
+const logout = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const token = req.token;
+
+    // Update user online status
+    const user = await User.findOne({ userId });
+    if (user) {
+      user.isOnline = false;
+      user.lastSeen = new Date();
+      await user.save();
+    }
+
+    // Delete/invalidate the token
+    if (token) {
+      await AuthToken.findOneAndDelete({ token });
+    }
+
+    // Clear typing indicators
+    await TypingIndicator.deleteMany({ userId });
+
+    res.status(200).json({
+      success: true,
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to logout",
+      error: "SERVER_ERROR",
+    });
+  }
+};
+
 module.exports = {
   legacyLogin,
   generateToken,
   verifyToken,
+  logout,
 };
-
