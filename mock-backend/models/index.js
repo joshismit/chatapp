@@ -112,7 +112,7 @@ const messageSchema = new mongoose.Schema(
     conversationId: {
       type: String,
       required: true,
-      index: true,
+      // Index created below
     },
     senderId: {
       type: String,
@@ -186,7 +186,7 @@ const authTokenSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true,
-      index: true,
+      // Index created below with TTL
     },
     usedAt: {
       type: Date,
@@ -220,7 +220,7 @@ const qrCodeSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true,
-      index: true,
+      // Index created below with TTL
     },
     isUsed: {
       type: Boolean,
@@ -278,7 +278,7 @@ const otpSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true,
-      index: true,
+      // Index created below with TTL
     },
     isUsed: {
       type: Boolean,
@@ -338,7 +338,7 @@ const conversationSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,
+      // Index created below
     },
     participants: [
       {
@@ -426,7 +426,7 @@ const typingIndicatorSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true,
-      index: true,
+      // Index created below with TTL
     },
   },
   {
