@@ -11,6 +11,7 @@ const authRoutes = require("./authRoutes");
 const userRoutes = require("./userRoutes");
 const registrationRoutes = require("./registrationRoutes");
 const chatRoutes = require("./chatRoutes");
+const sseRoutes = require("./sseRoutes");
 const { legacyLogin } = require("../controllers/authController");
 const { validateRequired } = require("../middleware/validator");
 const { asyncHandler } = require("../middleware/errorHandler");
@@ -33,6 +34,7 @@ router.use("/otp", otpRoutes); // Login OTP routes
 router.use("/qr", qrRoutes);
 router.use("/auth", authRoutes);
 router.use("/chat", chatRoutes); // Chat routes (conversations, messages, status)
+router.use("/sse", sseRoutes); // SSE routes for real-time updates
 router.use("/", userRoutes); // User routes at root level
 
 module.exports = router;

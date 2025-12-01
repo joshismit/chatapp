@@ -160,7 +160,14 @@ class ReactNativeEventSource {
   }
 }
 
-const SSE_BASE_URL = 'https://example.com'; // Replace with your SSE endpoint
+// Get API base URL from config
+let SSE_BASE_URL = 'http://localhost:3000'; // Default, will be updated from config
+try {
+  const apiConfig = require('../../app/config/api');
+  SSE_BASE_URL = apiConfig.API_BASE_URL || SSE_BASE_URL;
+} catch (error) {
+  // Config not available, use default
+}
 const DEFAULT_RECONNECT_DELAY = 1000; // 1 second
 const MAX_RECONNECT_DELAY = 30000; // 30 seconds
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -200,7 +207,12 @@ function getAuthToken(): string | undefined {
  * Build SSE URL with conversation ID and optional token
  */
 function buildSSEUrl(conversationId: string, token?: string): string {
-  const url = new URL(`${SSE_BASE_URL}/api/sse`);
+  // Use relative URL if base URL is localhost (for same origin)
+  const baseUrl = SSE_BASE_URL.includes('localhost') || SSE_BASE_URL.includes('127.0.0.1')
+    ? '' // Relative URL for same origin
+    : SSE_BASE_URL;
+  
+  const url = new URL(`${baseUrl}/api/sse`, baseUrl || window.location.origin);
   url.searchParams.set('conversationId', conversationId);
   
   // Add token as query param if provided (EventSource doesn't support headers)
@@ -316,39 +328,35 @@ export function subscribeToSSE(
         }
       };
 
+      // Handle explicit message event type (backend sends event: message)
+      eventSource.addEventListener('message', (event: any) => {
+        try {
+          const messageData = JSON.parse(event.data);
+          // Only process if it's actually a message (has messageId or id)
+          if (messageData.messageId || messageData.id) {
+            const storedMessage: StoredMessage = {
+              id: messageData.id || messageData.messageId,
+              text: messageData.text || messageData.message,
+              senderId: messageData.senderId || messageData.userId,
+              createdAt: messageData.createdAt || new Date().toISOString(),
+              status: messageData.status || 'sent',
+              serverId: messageData.id || messageData.messageId,
+            };
+            onMessage(storedMessage);
+          }
+        } catch (parseError) {
+          console.error('Error parsing SSE message event:', parseError);
+          onError?.(new Error('Failed to parse SSE message event'));
+        }
+      });
+
       // Handle custom event types
       eventSource.addEventListener('ping', (event: any) => {
         console.log('SSE ping received');
       });
 
-      // Handle message delivery status update
-      eventSource.addEventListener('delivery', (event: any) => {
-        try {
-          const data = JSON.parse(event.data);
-          const messageId = data.messageId || data.id;
-          if (messageId && onStatusUpdate) {
-            onStatusUpdate(messageId, 'delivered');
-          }
-        } catch (error) {
-          console.error('Error handling delivery event:', error);
-        }
-      });
-
-      // Handle message read status update
-      eventSource.addEventListener('read', (event: any) => {
-        try {
-          const data = JSON.parse(event.data);
-          const messageId = data.messageId || data.id;
-          if (messageId && onStatusUpdate) {
-            onStatusUpdate(messageId, 'read');
-          }
-        } catch (error) {
-          console.error('Error handling read event:', error);
-        }
-      });
-
-      // Handle message status update (generic)
-      eventSource.addEventListener('status', (event: any) => {
+      // Handle status update event
+      eventSource.addEventListener('statusUpdate', (event: any) => {
         try {
           const data = JSON.parse(event.data);
           const messageId = data.messageId || data.id;
@@ -359,7 +367,39 @@ export function subscribeToSSE(
             }
           }
         } catch (error) {
-          console.error('Error handling status event:', error);
+          console.error('Error handling statusUpdate event:', error);
+        }
+      });
+
+      // Handle typing event
+      eventSource.addEventListener('typing', (event: any) => {
+        try {
+          const data = JSON.parse(event.data);
+          // Typing indicators are handled separately if needed
+          console.log('Typing event:', data);
+        } catch (error) {
+          console.error('Error handling typing event:', error);
+        }
+      });
+
+      // Handle online status event
+      eventSource.addEventListener('onlineStatus', (event: any) => {
+        try {
+          const data = JSON.parse(event.data);
+          // Online status updates are handled separately if needed
+          console.log('Online status event:', data);
+        } catch (error) {
+          console.error('Error handling onlineStatus event:', error);
+        }
+      });
+
+      // Handle connected event
+      eventSource.addEventListener('connected', (event: any) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('SSE connected:', data);
+        } catch (error) {
+          console.error('Error handling connected event:', error);
         }
       });
 

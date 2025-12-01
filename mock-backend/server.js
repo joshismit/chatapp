@@ -92,6 +92,8 @@ app.listen(PORT, () => {
   console.log(`   Get user status: GET http://localhost:${PORT}/api/chat/users/:id/status`);
   console.log(`   Set typing: POST http://localhost:${PORT}/api/chat/typing`);
   console.log(`   Get typing: GET http://localhost:${PORT}/api/chat/conversations/:id/typing`);
+  console.log(`\n📡 SSE Endpoints:`);
+  console.log(`   SSE connection: GET http://localhost:${PORT}/api/sse?conversationId=xxx&token=xxx`);
   console.log(`\n🛠️  Utility Endpoints:`);
   console.log(
     `   Seed dummy data: POST http://localhost:${PORT}/api/seed/dummy-data`

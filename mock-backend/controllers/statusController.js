@@ -5,6 +5,7 @@
 
 const { User, TypingIndicator } = require("../models");
 const constants = require("../config/constants");
+const sseService = require("../services/sseService");
 
 /**
  * Update user online status
@@ -26,6 +27,9 @@ const updateOnlineStatus = async (req, res) => {
     user.isOnline = isOnline !== undefined ? isOnline : true;
     user.lastSeen = new Date();
     await user.save();
+
+    // Broadcast online status change via SSE
+    sseService.broadcastOnlineStatus(user.userId, user.isOnline, user.lastSeen);
 
     res.status(200).json({
       success: true,
@@ -99,6 +103,10 @@ const setTypingIndicator = async (req, res) => {
       });
     }
 
+    // Get user info for typing indicator
+    const user = await User.findOne({ userId });
+    const displayName = user ? user.displayName : 'User';
+
     if (isTyping) {
       // Set typing indicator (expires in 3 seconds)
       await TypingIndicator.findOneAndUpdate(
@@ -111,9 +119,15 @@ const setTypingIndicator = async (req, res) => {
         },
         { upsert: true, new: true }
       );
+
+      // Broadcast typing indicator via SSE
+      sseService.broadcastTyping(conversationId, userId, displayName, true);
     } else {
       // Remove typing indicator
       await TypingIndicator.findOneAndDelete({ conversationId, userId });
+
+      // Broadcast typing stopped via SSE
+      sseService.broadcastTyping(conversationId, userId, displayName, false);
     }
 
     res.status(200).json({

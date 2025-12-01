@@ -6,6 +6,7 @@
 const { Message, Conversation, User } = require("../models");
 const { generateMessageId } = require("../utils/helpers");
 const constants = require("../config/constants");
+const sseService = require("../services/sseService");
 
 /**
  * Send a message
@@ -83,24 +84,32 @@ const sendMessage = async (req, res) => {
     // Get sender info
     const sender = await User.findOne({ userId: senderId });
 
+    const messageResponse = {
+      messageId: message.messageId,
+      conversationId: message.conversationId,
+      senderId: message.senderId,
+      sender: {
+        userId: sender.userId,
+        displayName: sender.displayName,
+        avatar: sender.avatar,
+      },
+      text: message.text,
+      type: message.type,
+      status: message.status,
+      replyTo: message.replyTo,
+      createdAt: message.createdAt,
+      updatedAt: message.updatedAt,
+    };
+
+    // Broadcast message via SSE to all participants (except sender)
+    sseService.broadcastMessage(conversationId, {
+      ...messageResponse,
+      sender: messageResponse.sender,
+    }, senderId);
+
     res.status(201).json({
       success: true,
-      message: {
-        messageId: message.messageId,
-        conversationId: message.conversationId,
-        senderId: message.senderId,
-        sender: {
-          userId: sender.userId,
-          displayName: sender.displayName,
-          avatar: sender.avatar,
-        },
-        text: message.text,
-        type: message.type,
-        status: message.status,
-        replyTo: message.replyTo,
-        createdAt: message.createdAt,
-        updatedAt: message.updatedAt,
-      },
+      message: messageResponse,
       message: "Message sent successfully",
     });
   } catch (error) {
@@ -284,9 +293,25 @@ const updateMessageStatus = async (req, res) => {
         participant.lastReadAt = new Date();
         await conversation.save();
       }
+
+      // Broadcast status update via SSE
+      sseService.broadcastStatusUpdate(
+        message.conversationId,
+        messageId,
+        constants.MESSAGE_STATUS.READ,
+        currentUserId
+      );
     } else if (status === "delivered" && message.status === constants.MESSAGE_STATUS.SENT) {
       message.status = constants.MESSAGE_STATUS.DELIVERED;
       await message.save();
+
+      // Broadcast status update via SSE
+      sseService.broadcastStatusUpdate(
+        message.conversationId,
+        messageId,
+        constants.MESSAGE_STATUS.DELIVERED,
+        currentUserId
+      );
     }
 
     res.status(200).json({
