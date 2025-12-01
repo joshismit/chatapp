@@ -255,15 +255,30 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
       });
 
       if (response.success) {
+        // Show success message with user details
+        const successMessage = `Welcome ${response.user?.firstName || 'User'}! Your account has been created successfully. All your information has been saved to the database. Please login to continue.`;
+        
         showSuccessToast(
-          'Your account has been created successfully. Please login to continue.',
-          'Registration Successful'
+          successMessage,
+          'Sign Up Successful! 🎉'
         );
         
-        // Navigate to login after a short delay
+        // Log user data for verification (in development)
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('✅ User registered successfully:', {
+            userId: response.userId,
+            firstName: response.user?.firstName,
+            lastName: response.user?.lastName,
+            email: response.user?.email,
+            phoneNumber: response.user?.phoneNumber,
+            isRegistered: response.user?.isRegistered,
+          });
+        }
+        
+        // Navigate to login after a short delay to let user see the success message
         setTimeout(() => {
           navigation.replace('Login');
-        }, 2000);
+        }, 3000); // Increased delay to 3 seconds so user can read the message
       } else {
         const errorMsg = response.message || 'Failed to complete registration';
         setError(errorMsg);

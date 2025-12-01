@@ -125,6 +125,13 @@ export const registrationScreenStyles = StyleSheet.create({
     fontSize: theme.typography.fontSize.lg,
     color: theme.colors.textPrimary,
     paddingVertical: 0,
+    ...Platform.select({
+      web: {
+        outline: 'none',
+        outlineStyle: 'none',
+        border: 'none',
+      },
+    }),
   },
   otpInput: {
     fontSize: theme.typography.fontSize.xl,
