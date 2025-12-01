@@ -32,15 +32,28 @@ class SSEService {
     this.clients.get(conversationId).add(client);
     this.userConnections.get(userId).add(client);
 
-    // Set up SSE headers
-    res.writeHead(200, {
+    // Set up SSE headers with CORS configuration
+    // CORS headers - use environment variable if set, otherwise allow all in dev
+    const allowedOrigin = process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(",")[0].trim() // Use first origin for SSE
+      : process.env.NODE_ENV === "production"
+      ? null // Deny in production if not configured
+      : "*"; // Allow all in development
+
+    const headers = {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
       "X-Accel-Buffering": "no", // Disable buffering in nginx
-      "Access-Control-Allow-Origin": "*", // Allow CORS for SSE
-      "Access-Control-Allow-Headers": "Cache-Control",
-    });
+    };
+
+    if (allowedOrigin) {
+      headers["Access-Control-Allow-Origin"] = allowedOrigin;
+      headers["Access-Control-Allow-Credentials"] = "true";
+      headers["Access-Control-Allow-Headers"] = "Cache-Control, Authorization";
+    }
+
+    res.writeHead(200, headers);
 
     // Send initial connection message
     this.sendToClient(client, "connected", {

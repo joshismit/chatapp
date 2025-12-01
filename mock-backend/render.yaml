@@ -1,0 +1,18 @@
+# Render Blueprint for ChatApp Backend
+# This file can be used to deploy via Render Blueprint
+
+services:
+  - type: web
+    name: chatapp-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false  # Set this manually in Render dashboard
+      - key: ALLOWED_ORIGINS
+        sync: false  # Set this manually in Render dashboard
+    healthCheckPath: /health
+

@@ -5,9 +5,14 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-const MONGODB_URI =
-  process.env.MONGODB_URI ||
-  "mongodb+srv://smitjoshi709_db_user:RHLhRJ9PIBaP03yJ@cluster0.qampcyo.mongodb.net/chatapp_db";
+// CRITICAL: Remove hardcoded credentials - use environment variables only
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  console.error("❌ MONGODB_URI environment variable is required");
+  console.error("Please set MONGODB_URI in your .env file or environment variables");
+  process.exit(1);
+}
 
 const connectDB = async () => {
   try {
