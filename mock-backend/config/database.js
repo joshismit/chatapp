@@ -1,5 +1,5 @@
 /**
- * MongoDB Connection
+ * MongoDB Database Connection
  */
 
 const mongoose = require("mongoose");
@@ -26,3 +26,4 @@ const connectDB = async () => {
 };
 
 module.exports = connectDB;
+

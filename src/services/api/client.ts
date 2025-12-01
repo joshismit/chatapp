@@ -12,12 +12,18 @@ export const apiClient: AxiosInstance = axios.create({
 
 // Request interceptor for adding auth token
 apiClient.interceptors.request.use(
-  (config) => {
+  async (config) => {
     // Add auth token if available
-    // const token = getAuthToken(); // Implement your token retrieval
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    try {
+      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+      const token = await AsyncStorage.getItem('authToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      // If AsyncStorage fails, continue without token
+      console.warn('Failed to get auth token:', error);
+    }
     return config;
   },
   (error) => {

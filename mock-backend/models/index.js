@@ -1,3 +1,8 @@
+/**
+ * MongoDB Models
+ * All database schemas and models
+ */
+
 const mongoose = require("mongoose");
 
 // ============================================
@@ -55,7 +60,7 @@ const userSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt
+    timestamps: true,
     collection: "users",
   }
 );
@@ -90,7 +95,6 @@ const messageSchema = new mongoose.Schema(
       enum: ["text", "image", "video", "audio", "file", "location"],
       default: "text",
     },
-    // media field removed - not present in current database
     status: {
       type: String,
       enum: ["sending", "sent", "delivered", "read"],
@@ -126,7 +130,7 @@ messageSchema.index({ conversationId: 1, createdAt: -1 });
 messageSchema.index({ conversationId: 1, messageId: 1 });
 
 // ============================================
-// 4. AUTH TOKEN SCHEMA
+// 3. AUTH TOKEN SCHEMA
 // ============================================
 const authTokenSchema = new mongoose.Schema(
   {
@@ -155,7 +159,6 @@ const authTokenSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    // deviceInfo field removed - not present in current database
   },
   {
     timestamps: true,
@@ -167,7 +170,7 @@ const authTokenSchema = new mongoose.Schema(
 authTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // ============================================
-// 5. QR CODE SCHEMA
+// 4. QR CODE SCHEMA
 // ============================================
 const qrCodeSchema = new mongoose.Schema(
   {
@@ -214,7 +217,7 @@ const qrCodeSchema = new mongoose.Schema(
 qrCodeSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // ============================================
-// 6. OTP SCHEMA (For Mobile Login)
+// 5. OTP SCHEMA (For Mobile Login)
 // ============================================
 const otpSchema = new mongoose.Schema(
   {
@@ -276,3 +279,4 @@ module.exports = {
   QRCode,
   OTP,
 };
+

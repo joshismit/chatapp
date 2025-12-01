@@ -1,218 +1,139 @@
-# Backend Server for Chat App
+# ChatApp Backend
 
-Express.js backend server with MongoDB integration for QR code login and chat functionality.
+Express.js backend server with MongoDB integration for QR code login and OTP authentication.
 
-## Installation
+## 📁 Project Structure
+
+```
+mock-backend/
+├── config/              # Configuration files
+│   ├── database.js      # MongoDB connection
+│   └── constants.js     # Application constants
+├── models/              # Database models/schemas
+│   └── index.js         # All Mongoose models
+├── controllers/         # Business logic
+│   ├── authController.js
+│   ├── otpController.js
+│   ├── qrController.js
+│   └── userController.js
+├── routes/              # Route definitions
+│   ├── authRoutes.js
+│   ├── otpRoutes.js
+│   ├── qrRoutes.js
+│   ├── userRoutes.js
+│   └── index.js         # Main routes file
+├── middleware/         # Express middleware
+│   ├── auth.js          # Authentication middleware
+│   └── errorHandler.js  # Error handling middleware
+├── utils/               # Utility functions
+│   └── helpers.js       # Helper functions
+├── scripts/             # Utility scripts
+│   └── seedData.js      # Seed dummy data
+├── server.js            # Main server file
+└── package.json
+```
+
+## 🚀 Installation
 
 ```bash
 cd mock-backend
 npm install
 ```
 
-## Environment Setup
+## ⚙️ Environment Setup
 
-Create a `.env` file (already created with MongoDB connection):
+Create a `.env` file:
 
 ```env
-MONGODB_URI=mongodb+srv://smitjoshi709_db_user:RHLhRJ9PIBaP03yJ@cluster0.qampcyo.mongodb.net/chatapp_db
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/chatapp_db
 PORT=3000
 NODE_ENV=development
 ```
 
-## Running the Server
+## 🏃 Running the Server
 
 ```bash
-npm start
-```
-
-Or with auto-reload (requires nodemon):
-
-```bash
+# Development mode (with auto-reload)
 npm run dev
+
+# Production mode
+npm start
 ```
 
 The server will start on `http://localhost:3000` by default.
 
-## API Endpoints
+## 📡 API Endpoints
 
-### POST /api/login
+See [API_ENDPOINTS.md](./API_ENDPOINTS.md) for complete API documentation.
 
-Login endpoint for QR code authentication. Validates QR token against MongoDB.
+### Quick Reference:
 
-**Request:**
-```json
-{
-  "token": "your-qr-token-here"
-}
-```
+**Mobile Login (OTP):**
+- `POST /api/otp/generate` - Generate OTP
+- `POST /api/otp/verify` - Verify OTP
 
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "userId": "user_12345",
-  "message": "Logged in via QR"
-}
-```
+**Desktop Login (QR Code):**
+- `POST /api/qr/generate` - Generate QR code
+- `GET /api/qr/status/:qrToken` - Check QR status
+- `POST /api/qr/scan` - Scan QR code (requires auth)
+- `POST /api/qr/verify` - Verify QR code (requires auth)
 
-**Error Responses:**
+**Authentication:**
+- `POST /api/login` - Legacy login
+- `POST /api/auth/generate-token` - Generate test token
+- `GET /api/auth/verify` - Verify token (requires auth)
 
-400 - Invalid token:
-```json
-{
-  "success": false,
-  "message": "Token is required and cannot be empty"
-}
-```
+**Utilities:**
+- `GET /health` - Health check
+- `POST /api/seed/dummy-data` - Seed dummy users
 
-401 - Invalid/expired QR code:
-```json
-{
-  "success": false,
-  "message": "Invalid or expired QR token"
-}
-```
+## 🗄️ Database
 
-### POST /api/seed/dummy-data
+The server connects to MongoDB and uses the following collections:
+- `users` - User accounts
+- `messages` - Chat messages
+- `auth_tokens` - Authentication tokens
+- `qr_codes` - QR login codes
+- `otps` - OTP codes for mobile login
 
-Seed dummy conversations and messages to the database for testing.
+## 🧪 Seeding Data
 
-**Request:**
-```json
-{
-  "userId": "user_12345"
-}
-```
-
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Dummy data seeded successfully for user user_12345",
-  "conversationsCreated": 10,
-  "usersCreated": 10
-}
-```
-
-### GET /api/conversations
-
-Get all conversations for a user.
-
-**Query Parameters:**
-- `userId` (required) - The user ID to fetch conversations for
-
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "conversations": [
-    {
-      "conversationId": "conv_1",
-      "participants": [...],
-      "type": "direct",
-      "lastMessage": {
-        "messageId": "msg_1_1",
-        "text": "Hey, how are you doing today?",
-        "senderId": "user_john",
-        "timestamp": "2024-01-15T10:30:00.000Z"
-      },
-      "unreadCount": 2,
-      "updatedAt": "2024-01-15T10:30:00.000Z"
-    }
-  ]
-}
-```
-
-### GET /api/conversations/:conversationId
-
-Get a specific conversation by ID.
-
-**Success Response (200):**
-```json
-{
-  "conversationId": "conv_1",
-  "participants": [...],
-  "type": "direct",
-  ...
-}
-```
-
-### POST /api/qr/generate
-
-Generate a new QR code token for testing.
-
-**Request:**
-```json
-{
-  "userId": "user_12345"  // Optional
-}
-```
-
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "qrToken": "qr_1234567890_abc123",
-  "expiresAt": "2024-01-15T10:35:00.000Z",
-  "message": "QR code generated successfully"
-}
-```
-
-### GET /health
-
-Health check endpoint.
-
-**Response:**
-```json
-{
-  "status": "ok",
-  "message": "Mock backend server is running"
-}
-```
-
-## MongoDB Database
-
-The server connects to MongoDB Atlas:
-- **Database**: `chatapp_db`
-- **Collections**: 
-  - `users` - User accounts
-  - `conversations` - Chat conversations
-  - `messages` - Chat messages
-  - `auth_tokens` - Authentication tokens
-  - `qr_codes` - QR login codes
-  - `typing_indicators` - Typing status
-
-## Configuration
-
-To change the port, set the `PORT` environment variable:
+To seed dummy users:
 
 ```bash
-PORT=8080 npm start
+node scripts/seedData.js
 ```
 
-## Testing QR Login
+Or use the API endpoint:
 
-1. **Generate a QR token:**
-   ```bash
-   curl -X POST http://localhost:3000/api/qr/generate \
-     -H "Content-Type: application/json" \
-     -d '{"userId": "user_12345"}'
-   ```
-
-2. **Use the token to login:**
-   ```bash
-   curl -X POST http://localhost:3000/api/login \
-     -H "Content-Type: application/json" \
-     -d '{"token": "qr_1234567890_abc123"}'
-   ```
-
-## Updating the Mobile App
-
-The API base URL is already configured in `src/services/api/client.ts`:
-
-```typescript
-const API_BASE_URL = 'http://localhost:3000'; // For development
+```bash
+curl -X POST http://localhost:3000/api/seed/dummy-data \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "user_12345"}'
 ```
 
-**Note:** When testing on a physical device, replace `localhost` with your computer's IP address (e.g., `http://192.168.1.100:3000`).
+## 📝 Code Standards
 
+This project follows Node.js/Express best practices:
+
+- **Separation of Concerns**: Controllers handle business logic, routes define endpoints
+- **Middleware**: Authentication and error handling in separate middleware files
+- **Models**: All database schemas in models folder
+- **Constants**: Application constants centralized in config
+- **Utils**: Reusable helper functions in utils folder
+- **Error Handling**: Centralized error handling middleware
+
+## 🔒 Security Notes
+
+- OTPs expire after 5 minutes
+- QR codes expire after 5 minutes
+- Auth tokens expire after 7 days
+- OTP has maximum 3 verification attempts
+- QR codes can only be used once
+- Phone numbers are validated and normalized
+
+## 🛠️ Development
+
+- Use `npm run dev` for development with auto-reload (requires nodemon)
+- OTPs are logged to console in development mode
+- All endpoints return consistent JSON responses with `success` and `message` fields

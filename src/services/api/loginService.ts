@@ -9,6 +9,7 @@ export interface LoginResponse {
   success: boolean;
   message?: string;
   userId?: string;
+  token?: string; // Auth token returned from server
   user?: {
     id: string;
     name?: string;
@@ -29,9 +30,13 @@ export async function loginWithToken(token: string): Promise<LoginResponse> {
       token,
     });
     
-    // Store userId after successful login
+    // Store userId and token after successful login
     if (response.data.success && response.data.userId) {
       await AsyncStorage.setItem('currentUserId', response.data.userId);
+    }
+    
+    if (response.data.success && response.data.token) {
+      await AsyncStorage.setItem('authToken', response.data.token);
     }
     
     return response.data;
