@@ -355,7 +355,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
       <View style={styles.stepContainer}>
         <View style={styles.headerSection}>
           <View style={styles.iconContainer}>
-            <Ionicons name="person-add" size={48} color={COLORS.PRIMARY} />
+            <Ionicons name="person-add" size={40} color={COLORS.PRIMARY} />
           </View>
           <Text style={styles.stepTitle}>Create Account</Text>
           <Text style={styles.stepSubtitle}>
@@ -364,41 +364,45 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
         </View>
 
         <View style={styles.formSection}>
-          {/* First Name */}
-          {renderInputField(
-            'firstName',
-            'First Name',
-            firstName,
-            (text) => {
-              setFirstName(text);
-              setError(null);
-            },
-            'person-outline',
-            'default',
-            false,
-            false,
-            undefined,
-            undefined,
-            'words'
-          )}
-
-          {/* Last Name */}
-          {renderInputField(
-            'lastName',
-            'Last Name',
-            lastName,
-            (text) => {
-              setLastName(text);
-              setError(null);
-            },
-            'person-outline',
-            'default',
-            false,
-            false,
-            undefined,
-            undefined,
-            'words'
-          )}
+          {/* Name Fields - Side by Side */}
+          <View style={styles.rowContainer}>
+            <View style={styles.halfWidth}>
+              {renderInputField(
+                'firstName',
+                'First Name',
+                firstName,
+                (text) => {
+                  setFirstName(text);
+                  setError(null);
+                },
+                'person-outline',
+                'default',
+                false,
+                false,
+                undefined,
+                undefined,
+                'words'
+              )}
+            </View>
+            <View style={styles.halfWidthLast}>
+              {renderInputField(
+                'lastName',
+                'Last Name',
+                lastName,
+                (text) => {
+                  setLastName(text);
+                  setError(null);
+                },
+                'person-outline',
+                'default',
+                false,
+                false,
+                undefined,
+                undefined,
+                'words'
+              )}
+            </View>
+          </View>
 
           {/* Email */}
           {renderInputField(
@@ -464,70 +468,73 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
               </View>
             )}
 
-            {/* Password Requirements */}
+            {/* Password Requirements - Compact Grid */}
             {password.length > 0 && (
               <View style={styles.passwordRequirements}>
-                <Text style={styles.passwordRequirementText}>Requirements:</Text>
-                <View style={styles.requirementRow}>
-                  <Ionicons
-                    name={password.length >= 8 ? 'checkmark-circle' : 'ellipse-outline'}
-                    size={14}
-                    color={password.length >= 8 ? COLORS.SUCCESS : '#666'}
-                  />
-                  <Text style={[styles.passwordRequirementItem, password.length >= 8 && styles.requirementMet]}>
-                    At least 8 characters
-                  </Text>
-                </View>
-                <View style={styles.requirementRow}>
-                  <Ionicons
-                    name={/[A-Z]/.test(password) ? 'checkmark-circle' : 'ellipse-outline'}
-                    size={14}
-                    color={/[A-Z]/.test(password) ? COLORS.SUCCESS : '#666'}
-                  />
-                  <Text style={[styles.passwordRequirementItem, /[A-Z]/.test(password) && styles.requirementMet]}>
-                    One uppercase letter
-                  </Text>
-                </View>
-                <View style={styles.requirementRow}>
-                  <Ionicons
-                    name={/[a-z]/.test(password) ? 'checkmark-circle' : 'ellipse-outline'}
-                    size={14}
-                    color={/[a-z]/.test(password) ? COLORS.SUCCESS : '#666'}
-                  />
-                  <Text style={[styles.passwordRequirementItem, /[a-z]/.test(password) && styles.requirementMet]}>
-                    One lowercase letter
-                  </Text>
-                </View>
-                <View style={styles.requirementRow}>
-                  <Ionicons
-                    name={/[0-9]/.test(password) ? 'checkmark-circle' : 'ellipse-outline'}
-                    size={14}
-                    color={/[0-9]/.test(password) ? COLORS.SUCCESS : '#666'}
-                  />
-                  <Text style={[styles.passwordRequirementItem, /[0-9]/.test(password) && styles.requirementMet]}>
-                    One number
-                  </Text>
+                <View style={styles.requirementsGrid}>
+                  <View style={styles.requirementRow}>
+                    <Ionicons
+                      name={password.length >= 8 ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={12}
+                      color={password.length >= 8 ? COLORS.SUCCESS : '#666'}
+                    />
+                    <Text style={[styles.passwordRequirementItem, password.length >= 8 && styles.requirementMet]}>
+                      8+ chars
+                    </Text>
+                  </View>
+                  <View style={styles.requirementRow}>
+                    <Ionicons
+                      name={/[A-Z]/.test(password) ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={12}
+                      color={/[A-Z]/.test(password) ? COLORS.SUCCESS : '#666'}
+                    />
+                    <Text style={[styles.passwordRequirementItem, /[A-Z]/.test(password) && styles.requirementMet]}>
+                      Uppercase
+                    </Text>
+                  </View>
+                  <View style={styles.requirementRow}>
+                    <Ionicons
+                      name={/[a-z]/.test(password) ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={12}
+                      color={/[a-z]/.test(password) ? COLORS.SUCCESS : '#666'}
+                    />
+                    <Text style={[styles.passwordRequirementItem, /[a-z]/.test(password) && styles.requirementMet]}>
+                      Lowercase
+                    </Text>
+                  </View>
+                  <View style={styles.requirementRow}>
+                    <Ionicons
+                      name={/[0-9]/.test(password) ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={12}
+                      color={/[0-9]/.test(password) ? COLORS.SUCCESS : '#666'}
+                    />
+                    <Text style={[styles.passwordRequirementItem, /[0-9]/.test(password) && styles.requirementMet]}>
+                      Number
+                    </Text>
+                  </View>
                 </View>
               </View>
             )}
           </View>
 
           {/* Confirm Password */}
-          {renderInputField(
-            'confirmPassword',
-            'Re-enter Password',
-            confirmPassword,
-            (text) => {
-              setConfirmPassword(text);
-              setError(null);
-            },
-            'lock-closed-outline',
-            'default',
-            !showConfirmPassword,
-            true,
-            showConfirmPassword,
-            () => setShowConfirmPassword(!showConfirmPassword)
-          )}
+          <View style={styles.inputWrapper}>
+            {renderInputField(
+              'confirmPassword',
+              'Re-enter Password',
+              confirmPassword,
+              (text) => {
+                setConfirmPassword(text);
+                setError(null);
+              },
+              'lock-closed-outline',
+              'default',
+              !showConfirmPassword,
+              true,
+              showConfirmPassword,
+              () => setShowConfirmPassword(!showConfirmPassword)
+            )}
+          </View>
 
           {/* Password Match Indicator */}
           {confirmPassword.length > 0 && (
@@ -603,7 +610,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
 
       <View style={styles.headerSection}>
         <View style={styles.iconContainer}>
-          <Ionicons name="lock-closed" size={48} color={COLORS.PRIMARY} />
+          <Ionicons name="lock-closed" size={40} color={COLORS.PRIMARY} />
         </View>
         <Text style={styles.stepTitle}>Verify Your Email</Text>
         <Text style={styles.stepSubtitle}>
@@ -684,19 +691,23 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
   );
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        {step === 'details' && renderDetailsStep()}
-        {step === 'otp' && renderOtpStep()}
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          {step === 'details' && renderDetailsStep()}
+          {step === 'otp' && renderOtpStep()}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -705,42 +716,49 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0a0a0a',
   },
+  keyboardView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
-    padding: 24,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 40 : 20,
+    paddingBottom: 20,
   },
   stepContainer: {
     width: '100%',
     maxWidth: 440,
     alignSelf: 'center',
+    flex: 1,
   },
   headerSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
+    paddingTop: 0,
   },
   iconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: 'rgba(98, 0, 238, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   stepTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     color: '#fff',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
     letterSpacing: -0.5,
   },
   stepSubtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: '#999',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
+    paddingHorizontal: 20,
   },
   emailHighlight: {
     color: COLORS.PRIMARY,
@@ -748,17 +766,38 @@ const styles = StyleSheet.create({
   },
   formSection: {
     width: '100%',
+    paddingTop: 0,
+  },
+  inputsGroup: {
+    width: '100%',
+  },
+  rowContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  halfWidth: {
+    flex: 1,
+    marginRight: 6,
+    overflow: 'hidden',
+  },
+  halfWidthLast: {
+    flex: 1,
+    marginLeft: 6,
+    overflow: 'hidden',
   },
   inputWrapper: {
-    marginBottom: 20,
+    marginBottom: 16,
+    overflow: 'hidden',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1a1a1a',
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    minHeight: 52,
     borderWidth: 2,
     borderColor: '#2a2a2a',
   },
@@ -768,12 +807,15 @@ const styles = StyleSheet.create({
     ...Platform.select({
       ios: {
         shadowColor: COLORS.PRIMARY,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
       },
       android: {
-        elevation: 4,
+        elevation: 2,
+      },
+      web: {
+        boxShadow: `0 0 0 2px ${COLORS.PRIMARY}40`,
       },
     }),
   },
@@ -806,8 +848,8 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   passwordStrengthContainer: {
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: 8,
+    marginBottom: 4,
   },
   passwordStrengthBar: {
     height: 4,
@@ -819,7 +861,6 @@ const styles = StyleSheet.create({
   passwordStrengthFill: {
     height: '100%',
     borderRadius: 2,
-    transition: 'width 0.3s ease',
   },
   passwordStrengthText: {
     fontSize: 12,
@@ -828,34 +869,35 @@ const styles = StyleSheet.create({
   },
   passwordRequirements: {
     backgroundColor: '#151515',
-    padding: 14,
-    borderRadius: 10,
+    padding: 10,
+    borderRadius: 8,
     marginTop: 8,
     borderWidth: 1,
     borderColor: '#2a2a2a',
   },
-  passwordRequirementText: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 10,
-    fontWeight: '600',
+  requirementsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   requirementRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
+    width: '48%',
   },
   passwordRequirementItem: {
-    fontSize: 13,
+    fontSize: 11,
     color: '#666',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   requirementMet: {
     color: COLORS.SUCCESS,
   },
   passwordMatchContainer: {
-    marginTop: -8,
-    marginBottom: 8,
+    marginTop: -2,
+    marginBottom: 2,
+    marginLeft: 4,
   },
   passwordMatch: {
     flexDirection: 'row',
@@ -873,9 +915,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(244, 67, 54, 0.1)',
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 20,
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 2,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(244, 67, 54, 0.3)',
   },
@@ -887,13 +930,15 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: COLORS.PRIMARY,
-    paddingVertical: 18,
-    borderRadius: 14,
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     marginTop: 8,
-    minHeight: 56,
+    marginBottom: 6,
+    minHeight: 52,
+    width: '100%',
     ...Platform.select({
       ios: {
         shadowColor: COLORS.PRIMARY,
@@ -919,7 +964,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 16,
+    marginBottom: 8,
   },
   loginLinkText: {
     fontSize: 15,
@@ -932,17 +978,18 @@ const styles = StyleSheet.create({
   },
   backButton: {
     alignSelf: 'flex-start',
-    padding: 8,
-    marginBottom: 20,
+    padding: 10,
+    marginBottom: 24,
     borderRadius: 10,
     backgroundColor: '#1a1a1a',
+    marginLeft: -4,
   },
   otpTimerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
-    marginBottom: 20,
+    marginTop: 12,
+    marginBottom: 24,
   },
   otpTimer: {
     fontSize: 14,
