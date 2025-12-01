@@ -30,13 +30,46 @@ import { COLORS } from '../../app/constants';
 import { showSuccessToast, showErrorToast, showInfoToast } from '../../utils/toast';
 
 // Conditionally import QR code based on platform
-let QRCodeComponent: any = null;
+// For web platform, use qrcode.react library
+let QRCodeComponent: React.ComponentType<any> | null = null;
+
 if (Platform.OS === 'web') {
   try {
-    const QRCodeReact = require('qrcode.react');
-    QRCodeComponent = QRCodeReact.default || QRCodeReact;
+    // Import qrcode.react - version 4+ exports QRCodeSVG
+    const QRCodeModule = require('qrcode.react');
+    
+    // Try QRCodeSVG first (v4+)
+    if (QRCodeModule.QRCodeSVG) {
+      QRCodeComponent = QRCodeModule.QRCodeSVG;
+      console.log('✅ QRCode loaded: QRCodeSVG');
+    }
+    // Try default export
+    else if (QRCodeModule.default) {
+      if (QRCodeModule.default.QRCodeSVG) {
+        QRCodeComponent = QRCodeModule.default.QRCodeSVG;
+        console.log('✅ QRCode loaded: default.QRCodeSVG');
+      } else if (typeof QRCodeModule.default === 'function') {
+        QRCodeComponent = QRCodeModule.default;
+        console.log('✅ QRCode loaded: default function');
+      }
+    }
+    // Try named QRCode export
+    else if (QRCodeModule.QRCode) {
+      QRCodeComponent = QRCodeModule.QRCode;
+      console.log('✅ QRCode loaded: QRCode');
+    }
+    // Direct function
+    else if (typeof QRCodeModule === 'function') {
+      QRCodeComponent = QRCodeModule;
+      console.log('✅ QRCode loaded: direct function');
+    }
+    
+    if (!QRCodeComponent) {
+      console.warn('⚠️ QRCode component not found. Module structure:', Object.keys(QRCodeModule));
+    }
   } catch (e) {
-    console.warn('QRCode library not available');
+    console.error('❌ Failed to load QRCode library:', e);
+    QRCodeComponent = null;
   }
 }
 
@@ -460,12 +493,16 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
       {qrCode && (
         <View style={styles.qrContainer}>
           {QRCodeComponent ? (
-            <QRCodeComponent
-              value={qrCode}
-              size={250}
-              fgColor="#000"
-              bgColor="#fff"
-            />
+            <View style={styles.qrCodeWrapper}>
+              <QRCodeComponent
+                value={qrCode}
+                size={250}
+                fgColor="#000000"
+                bgColor="#FFFFFF"
+                level="H"
+                includeMargin={true}
+              />
+            </View>
           ) : (
             <View style={styles.qrFallback}>
               <Text style={styles.qrFallbackText}>QR Code:</Text>
@@ -754,6 +791,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 24,
     minHeight: 300,
+  },
+  qrCodeWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    backgroundColor: '#fff',
+    borderRadius: 8,
   },
   qrFallback: {
     alignItems: 'center',
