@@ -19,6 +19,7 @@ export type ChatStackParamList = {
 };
 
 export type RootStackParamList = {
+  Registration: undefined;
   Login: undefined;
   Success: undefined;
   MainTabs: NavigatorScreenParams<RootTabParamList>;

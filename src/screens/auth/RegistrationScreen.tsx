@@ -1,86 +1,57 @@
 /**
- * Login Screen
- * Updated flow: Phone/Email → Check Registration → QR Code (Desktop) or OTP (Mobile)
+ * Registration Screen
+ * Handles user registration via phone or email
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   StyleSheet,
+  TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Platform,
-  TouchableOpacity,
   KeyboardAvoidingView,
+  Platform,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../types/navigation';
 import {
-  generateOTPForLogin,
-  verifyOTPForLogin,
-  generateQRCode,
-  checkQRStatus,
-} from '../../services/api/loginService';
-import { checkAvailability } from '../../services/api/registrationService';
+  checkAvailability,
+  generateRegistrationOTP,
+  verifyRegistrationOTP,
+} from '../../services/api/registrationService';
 import { COLORS } from '../../app/constants';
 
-// Conditionally import QR code based on platform
-let QRCodeComponent: any = null;
-if (Platform.OS === 'web') {
-  try {
-    const QRCodeReact = require('qrcode.react');
-    QRCodeComponent = QRCodeReact.default || QRCodeReact;
-  } catch (e) {
-    console.warn('QRCode library not available');
-  }
-}
+type RegistrationScreenProps = StackScreenProps<RootStackParamList, 'Registration'>;
 
-// Conditionally import CameraView only for native platforms
-let CameraView: any;
-let CameraType: any;
-let useCameraPermissions: any;
+type RegistrationMethod = 'phone' | 'email';
 
-if (Platform.OS !== 'web') {
-  const cameraModule = require('expo-camera');
-  CameraView = cameraModule.CameraView;
-  CameraType = cameraModule.CameraType;
-  useCameraPermissions = cameraModule.useCameraPermissions;
-}
-
-type LoginScreenProps = StackScreenProps<RootStackParamList, 'Login'>;
-
-type LoginStep = 'input' | 'qr' | 'otp' | 'scanning';
-
-export default function LoginScreen({ navigation }: LoginScreenProps) {
-  // Step in login process
-  const [step, setStep] = useState<LoginStep>('input');
+export default function RegistrationScreen({ navigation }: RegistrationScreenProps) {
+  // Registration method (phone or email)
+  const [method, setMethod] = useState<RegistrationMethod>('phone');
+  
+  // Step in registration process
+  const [step, setStep] = useState<'input' | 'otp' | 'name'>('input');
   
   // Form inputs
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
-  const [method, setMethod] = useState<'phone' | 'email'>('phone');
   const [otp, setOtp] = useState('');
+  const [displayName, setDisplayName] = useState('');
   
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
-  
-  // QR Code state
-  const [qrToken, setQrToken] = useState<string | null>(null);
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [qrStatus, setQrStatus] = useState<'pending' | 'scanned' | 'verified' | 'expired'>('pending');
-  
-  // OTP state
   const [otpSent, setOtpSent] = useState(false);
   const [otpExpiresIn, setOtpExpiresIn] = useState(0);
+  const [available, setAvailable] = useState<boolean | null>(null);
 
   // Timer for OTP expiry
-  useEffect(() => {
+  React.useEffect(() => {
     if (otpSent && otpExpiresIn > 0) {
       const timer = setInterval(() => {
         setOtpExpiresIn((prev) => {
@@ -95,33 +66,12 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     }
   }, [otpSent, otpExpiresIn]);
 
-  // Poll QR status
-  useEffect(() => {
-    if (step === 'qr' && qrToken && qrStatus === 'pending') {
-      const interval = setInterval(async () => {
-        try {
-          const status = await checkQRStatus(qrToken);
-          setQrStatus(status.status as any);
-          
-          if (status.status === 'verified' && status.token) {
-            // Login successful
-            navigation.replace('MainTabs');
-          } else if (status.status === 'expired') {
-            setError('QR code expired. Please generate a new one.');
-            setStep('input');
-          }
-        } catch (err: any) {
-          console.error('QR status check error:', err);
-        }
-      }, 2000); // Poll every 2 seconds
-
-      return () => clearInterval(interval);
-    }
-  }, [step, qrToken, qrStatus]);
-
-  // Format phone number
+  // Format phone number display
   const formatPhoneNumber = (text: string) => {
+    // Remove all non-digit characters
     const cleaned = text.replace(/\D/g, '');
+    
+    // Add + prefix if not present
     if (cleaned && !text.startsWith('+')) {
       return '+' + cleaned;
     }
@@ -130,6 +80,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
   // Validate phone number
   const validatePhoneNumber = (phone: string): boolean => {
+    // Basic validation: should start with + and have at least 10 digits
     const phoneRegex = /^\+[1-9]\d{9,14}$/;
     return phoneRegex.test(phone);
   };
@@ -140,8 +91,8 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     return emailRegex.test(email);
   };
 
-  // Check if user is registered
-  const handleCheckUser = async () => {
+  // Check availability
+  const handleCheckAvailability = async () => {
     const identifier = method === 'phone' ? phoneNumber : email;
     
     if (!identifier.trim()) {
@@ -163,84 +114,61 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     setError(null);
 
     try {
-      // Check if user is registered
-      const availability = await checkAvailability(
+      const response = await checkAvailability(
         method === 'phone' ? phoneNumber : undefined,
         method === 'email' ? email : undefined
       );
 
-      if (!availability.available) {
-        // User is registered - proceed with login
-        setIsRegistered(true);
-        
-        // Desktop/Web: Generate QR code
-        if (Platform.OS === 'web') {
-          await handleGenerateQRCode();
-        } else {
-          // Mobile: Send OTP
-          await handleGenerateOTP();
-        }
+      if (response.available) {
+        setAvailable(true);
+        // Automatically proceed to generate OTP
+        await handleGenerateOTP();
       } else {
-        // User is not registered - redirect to registration
-        setIsRegistered(false);
+        setAvailable(false);
         Alert.alert(
-          'Not Registered',
-          'This phone/email is not registered. Please sign up first.',
+          'Already Registered',
+          response.message || 'This phone/email is already registered. Please login instead.',
           [
             {
-              text: 'Go to Sign Up',
-              onPress: () => navigation.navigate('Registration'),
+              text: 'Go to Login',
+              onPress: () => navigation.navigate('Login'),
             },
             {
               text: 'Cancel',
               style: 'cancel',
-              onPress: () => {
-                setStep('input');
-                setIsRegistered(null);
-              },
             },
           ]
         );
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to check user');
-      setIsRegistered(null);
+      setError(err.message || 'Failed to check availability');
+      setAvailable(null);
     } finally {
       setLoading(false);
     }
   };
 
-  // Generate QR code for desktop login
-  const handleGenerateQRCode = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await generateQRCode();
-      setQrToken(response.qrToken);
-      setQrCode(response.qrToken); // Use token as QR code data
-      setStep('qr');
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate QR code');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Generate OTP for mobile login
+  // Generate OTP
   const handleGenerateOTP = async () => {
+    const identifier = method === 'phone' ? phoneNumber : email;
+    
+    if (!identifier.trim()) {
+      setError(method === 'phone' ? 'Please enter phone number' : 'Please enter email');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const response = await generateOTPForLogin({
+      const response = await generateRegistrationOTP({
         phoneNumber: method === 'phone' ? phoneNumber : undefined,
         email: method === 'email' ? email : undefined,
       });
 
       if (response.success) {
         setOtpSent(true);
-        setOtpExpiresIn(response.expiresIn || 300);
+        setOtpExpiresIn(response.expiresIn || 300); // 5 minutes default
         setStep('otp');
         
         // In development, show OTP if provided
@@ -264,7 +192,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     }
   };
 
-  // Verify OTP and login
+  // Verify OTP and complete registration
   const handleVerifyOTP = async () => {
     if (!otp.trim()) {
       setError('Please enter OTP');
@@ -280,17 +208,31 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     setError(null);
 
     try {
-      const response = await verifyOTPForLogin({
+      const response = await verifyRegistrationOTP({
         phoneNumber: method === 'phone' ? phoneNumber : undefined,
         email: method === 'email' ? email : undefined,
         otp: otp.trim(),
+        displayName: displayName.trim() || 'User',
       });
 
-      if (response.success && response.token) {
-        // Login successful
-        navigation.replace('MainTabs');
+      if (response.success) {
+        if (response.action === 'login') {
+          Alert.alert(
+            'Registration Successful',
+            'Your account has been created. Please login to continue.',
+            [
+              {
+                text: 'Go to Login',
+                onPress: () => navigation.replace('Login'),
+              },
+            ]
+          );
+        } else {
+          // Should not happen, but handle it
+          navigation.replace('Login');
+        }
       } else {
-        setError(response.message || 'Failed to verify OTP');
+        setError(response.message || 'Failed to complete registration');
       }
     } catch (err: any) {
       setError(err.message || 'Failed to verify OTP');
@@ -299,12 +241,23 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     }
   };
 
+  // Handle OTP input - auto proceed to name if OTP is complete
+  const handleOtpChange = (text: string) => {
+    setOtp(text);
+    setError(null);
+    
+    // Auto proceed to name step when OTP is entered (6 digits typically)
+    if (text.length >= 6) {
+      setStep('name');
+    }
+  };
+
   // Render input step
   const renderInputStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Login</Text>
+      <Text style={styles.stepTitle}>Create Account</Text>
       <Text style={styles.stepSubtitle}>
-        Enter your phone number or email to continue
+        Choose how you want to register
       </Text>
 
       {/* Method Selection */}
@@ -314,6 +267,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           onPress={() => {
             setMethod('phone');
             setError(null);
+            setAvailable(null);
           }}
         >
           <Ionicons
@@ -336,6 +290,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           onPress={() => {
             setMethod('email');
             setError(null);
+            setAvailable(null);
           }}
         >
           <Ionicons
@@ -374,6 +329,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
               setEmail(text.toLowerCase().trim());
             }
             setError(null);
+            setAvailable(null);
           }}
           keyboardType={method === 'phone' ? 'phone-pad' : 'email-address'}
           autoCapitalize="none"
@@ -381,6 +337,15 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           editable={!loading}
         />
       </View>
+
+      {available === false && (
+        <View style={styles.availabilityContainer}>
+          <Ionicons name="alert-circle-outline" size={20} color={COLORS.ERROR} />
+          <Text style={styles.availabilityText}>
+            This {method === 'phone' ? 'phone number' : 'email'} is already registered
+          </Text>
+        </View>
+      )}
 
       {error && (
         <View style={styles.errorContainer}>
@@ -391,7 +356,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
       <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleCheckUser}
+        onPress={handleCheckAvailability}
         disabled={loading}
       >
         {loading ? (
@@ -403,87 +368,17 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
       <TouchableOpacity
         style={styles.linkButton}
-        onPress={() => navigation.navigate('Registration')}
+        onPress={() => navigation.navigate('Login')}
       >
         <Text style={styles.linkText}>
-          Don't have an account? <Text style={styles.linkTextBold}>Sign Up</Text>
+          Already have an account? <Text style={styles.linkTextBold}>Login</Text>
         </Text>
       </TouchableOpacity>
     </View>
   );
 
-  // Render QR code step (Desktop/Web)
-  const renderQRStep = () => (
-    <View style={styles.stepContainer}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => {
-          setStep('input');
-          setQrToken(null);
-          setQrCode(null);
-          setError(null);
-        }}
-      >
-        <Ionicons name="arrow-back" size={24} color={COLORS.PRIMARY} />
-      </TouchableOpacity>
-
-      <Text style={styles.stepTitle}>Scan QR Code</Text>
-      <Text style={styles.stepSubtitle}>
-        Scan this QR code with your mobile app to login
-      </Text>
-
-      {qrCode && (
-        <View style={styles.qrContainer}>
-          {QRCodeComponent ? (
-            <QRCodeComponent
-              value={qrCode}
-              size={250}
-              fgColor="#000"
-              bgColor="#fff"
-            />
-          ) : (
-            <View style={styles.qrFallback}>
-              <Text style={styles.qrFallbackText}>QR Code:</Text>
-              <Text style={styles.qrFallbackToken} selectable>
-                {qrCode}
-              </Text>
-              <Text style={styles.qrFallbackHint}>
-                Copy this token and use it in the mobile app
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      {qrStatus === 'pending' && (
-        <Text style={styles.qrStatusText}>Waiting for scan...</Text>
-      )}
-
-      {qrStatus === 'scanned' && (
-        <Text style={styles.qrStatusText}>QR code scanned. Waiting for verification...</Text>
-      )}
-
-      {error && (
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={20} color={COLORS.ERROR} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
-      <TouchableOpacity
-        style={styles.linkButton}
-        onPress={handleGenerateQRCode}
-        disabled={loading}
-      >
-        <Text style={styles.linkText}>
-          <Text style={styles.linkTextBold}>Generate New QR Code</Text>
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  // Render OTP step (Mobile)
-  const renderOTPStep = () => (
+  // Render OTP step
+  const renderOtpStep = () => (
     <View style={styles.stepContainer}>
       <TouchableOpacity
         style={styles.backButton}
@@ -516,10 +411,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           placeholder="Enter OTP"
           placeholderTextColor="#999"
           value={otp}
-          onChangeText={(text) => {
-            setOtp(text);
-            setError(null);
-          }}
+          onChangeText={handleOtpChange}
           keyboardType="number-pad"
           maxLength={6}
           autoFocus
@@ -543,14 +435,10 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
       <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleVerifyOTP}
+        onPress={() => setStep('name')}
         disabled={loading || otp.length < 4}
       >
-        {loading ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Login</Text>
-        )}
+        <Text style={styles.buttonText}>Continue</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -565,6 +453,69 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     </View>
   );
 
+  // Render name step
+  const renderNameStep = () => (
+    <View style={styles.stepContainer}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => {
+          setStep('otp');
+          setDisplayName('');
+          setError(null);
+        }}
+      >
+        <Ionicons name="arrow-back" size={24} color={COLORS.PRIMARY} />
+      </TouchableOpacity>
+
+      <Text style={styles.stepTitle}>Your Name</Text>
+      <Text style={styles.stepSubtitle}>
+        Enter your display name for your profile
+      </Text>
+
+      <View style={styles.inputContainer}>
+        <Ionicons
+          name="person-outline"
+          size={20}
+          color="#666"
+          style={styles.inputIcon}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Display Name"
+          placeholderTextColor="#999"
+          value={displayName}
+          onChangeText={(text) => {
+            setDisplayName(text);
+            setError(null);
+          }}
+          autoCapitalize="words"
+          autoCorrect={false}
+          editable={!loading}
+          autoFocus
+        />
+      </View>
+
+      {error && (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={20} color={COLORS.ERROR} />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
+      <TouchableOpacity
+        style={[styles.button, loading && styles.buttonDisabled]}
+        onPress={handleVerifyOTP}
+        disabled={loading || !displayName.trim()}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Complete Registration</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -575,13 +526,13 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Ionicons name="log-in-outline" size={64} color={COLORS.PRIMARY} />
-          <Text style={styles.headerTitle}>Login</Text>
+          <Ionicons name="person-add-outline" size={64} color={COLORS.PRIMARY} />
+          <Text style={styles.headerTitle}>Sign Up</Text>
         </View>
 
         {step === 'input' && renderInputStep()}
-        {step === 'qr' && renderQRStep()}
-        {step === 'otp' && renderOTPStep()}
+        {step === 'otp' && renderOtpStep()}
+        {step === 'name' && renderNameStep()}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -673,6 +624,20 @@ const styles = StyleSheet.create({
     color: '#fff',
     paddingVertical: 16,
   },
+  availabilityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2a1a1a',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
+  },
+  availabilityText: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.ERROR,
+  },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -721,47 +686,6 @@ const styles = StyleSheet.create({
     padding: 8,
     marginBottom: 16,
   },
-  qrContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 24,
-    minHeight: 300,
-  },
-  qrFallback: {
-    alignItems: 'center',
-    padding: 20,
-  },
-  qrFallbackText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 12,
-  },
-  qrFallbackToken: {
-    fontSize: 14,
-    color: '#333',
-    fontFamily: 'monospace',
-    textAlign: 'center',
-    padding: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    marginBottom: 12,
-    maxWidth: '100%',
-  },
-  qrFallbackHint: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-  },
-  qrStatusText: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
   otpTimer: {
     fontSize: 14,
     color: '#999',
@@ -769,3 +693,4 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 });
+

@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { ChatListScreen, ChatScreen } from '../screens/chat';
-import { LoginScreen } from '../screens/auth';
+import { LoginScreen, RegistrationScreen } from '../screens/auth';
 import ArchivedScreen from '../screens/ArchivedScreen';
 import SuccessScreen from '../screens/SuccessScreen';
 import { ChatStackParamList, RootTabParamList, RootStackParamList } from '../types/navigation';
@@ -83,16 +83,20 @@ function MainTabNavigator() {
   );
 }
 
-// Root Stack Navigator (Login -> MainTabs)
-// After successful login, users are taken directly to the chat interface
+// Root Stack Navigator (Registration -> Login -> MainTabs)
+// New users start with registration, then login
 export default function AppNavigator() {
   return (
     <RootStack.Navigator
-      initialRouteName="Login"
+      initialRouteName="Registration"
       screenOptions={{
         headerShown: false,
       }}
     >
+      <RootStack.Screen
+        name="Registration"
+        component={RegistrationScreen}
+      />
       <RootStack.Screen
         name="Login"
         component={LoginScreen}
