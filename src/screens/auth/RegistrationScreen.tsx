@@ -14,6 +14,7 @@ import {
   Platform,
   ScrollView,
   Animated,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StackScreenProps } from '@react-navigation/stack';
@@ -31,6 +32,12 @@ type RegistrationScreenProps = StackScreenProps<RootStackParamList, 'Registratio
 type RegistrationStep = 'details' | 'otp';
 
 export default function RegistrationScreen({ navigation, route }: RegistrationScreenProps) {
+  // Get screen dimensions for responsive design
+  const { width, height } = useWindowDimensions();
+  const isTablet = width >= 768;
+  const isDesktop = width >= 1024;
+  const isSmallScreen = width < 375;
+  
   // Get pre-filled values from navigation params
   const prefillEmail = route.params?.prefillEmail;
   const prefillPhone = route.params?.prefillPhone;
@@ -379,9 +386,14 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
         </View>
 
         <View style={styles.formSection}>
-          {/* Name Fields - Side by Side */}
-          <View style={styles.rowContainer}>
-            <View style={styles.halfWidth}>
+          {/* Name Fields - Side by Side on larger screens, stacked on mobile */}
+          <View style={[
+            styles.rowContainer,
+            isSmallScreen && styles.rowContainerStacked
+          ]}>
+            <View style={[
+              isSmallScreen ? styles.fullWidth : styles.halfWidth
+            ]}>
               {renderInputField(
                 'firstName',
                 'First Name',
@@ -399,7 +411,10 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
                 'words'
               )}
             </View>
-            <View style={styles.halfWidthLast}>
+            <View style={[
+              isSmallScreen ? styles.fullWidth : styles.halfWidthLast,
+              !isSmallScreen && { marginTop: 0 }
+            ]}>
               {renderInputField(
                 'lastName',
                 'Last Name',
@@ -463,7 +478,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
               () => setShowPassword(!showPassword)
             )}
             
-            {/* Password Strength Indicator */}
+            {/* Password Strength Indicator - Only Bar */}
             {password.length > 0 && passwordValidation && (
               <View style={styles.passwordStrengthContainer}>
                 <View style={styles.passwordStrengthBar}>
@@ -480,54 +495,6 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
                 <Text style={[styles.passwordStrengthText, { color: getPasswordStrengthColor(passwordStrength) }]}>
                   {getPasswordStrengthLabel(passwordStrength)}
                 </Text>
-              </View>
-            )}
-
-            {/* Password Requirements - Compact Grid */}
-            {password.length > 0 && (
-              <View style={styles.passwordRequirements}>
-                <View style={styles.requirementsGrid}>
-                  <View style={styles.requirementRow}>
-                    <Ionicons
-                      name={password.length >= 8 ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={10}
-                      color={password.length >= 8 ? theme.colors.success : theme.colors.textTertiary}
-                    />
-                    <Text style={[styles.passwordRequirementItem, password.length >= 8 && styles.requirementMet]}>
-                      8+ chars
-                    </Text>
-                  </View>
-                  <View style={styles.requirementRow}>
-                    <Ionicons
-                      name={/[A-Z]/.test(password) ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={10}
-                      color={/[A-Z]/.test(password) ? theme.colors.success : theme.colors.textTertiary}
-                    />
-                    <Text style={[styles.passwordRequirementItem, /[A-Z]/.test(password) && styles.requirementMet]}>
-                      Upper
-                    </Text>
-                  </View>
-                  <View style={styles.requirementRow}>
-                    <Ionicons
-                      name={/[a-z]/.test(password) ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={10}
-                      color={/[a-z]/.test(password) ? theme.colors.success : theme.colors.textTertiary}
-                    />
-                    <Text style={[styles.passwordRequirementItem, /[a-z]/.test(password) && styles.requirementMet]}>
-                      Lower
-                    </Text>
-                  </View>
-                  <View style={styles.requirementRow}>
-                    <Ionicons
-                      name={/[0-9]/.test(password) ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={10}
-                      color={/[0-9]/.test(password) ? theme.colors.success : theme.colors.textTertiary}
-                    />
-                    <Text style={[styles.passwordRequirementItem, /[0-9]/.test(password) && styles.requirementMet]}>
-                      Number
-                    </Text>
-                  </View>
-                </View>
               </View>
             )}
           </View>
@@ -705,6 +672,17 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
     </View>
   );
 
+  // Dynamic styles based on screen size
+  const dynamicScrollContent = {
+    ...styles.scrollContent,
+    paddingHorizontal: isDesktop ? theme.spacing.xl : isTablet ? theme.spacing.lg : theme.spacing.md,
+  };
+
+  const dynamicStepContainer = {
+    ...styles.stepContainer,
+    maxWidth: isDesktop ? 520 : isTablet ? 480 : 440,
+  };
+
   return (
     <View style={styles.container}>
       <KeyboardAvoidingView
@@ -713,7 +691,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={dynamicScrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           bounces={false}

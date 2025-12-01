@@ -3,8 +3,13 @@
  * Separate style file for RegistrationScreen component
  */
 
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform, Dimensions } from 'react-native';
 import { theme } from '../../../theme';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const isTablet = SCREEN_WIDTH >= 768;
+const isDesktop = SCREEN_WIDTH >= 1024;
+const isSmallScreen = SCREEN_WIDTH < 375;
 
 export const registrationScreenStyles = StyleSheet.create({
   container: {
@@ -16,14 +21,16 @@ export const registrationScreenStyles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: theme.spacing.md,
-    paddingTop: Platform.OS === 'ios' ? theme.spacing.md : theme.spacing.sm,
-    paddingBottom: theme.spacing.sm,
+    paddingHorizontal: isDesktop ? theme.spacing.xl : isTablet ? theme.spacing.lg : theme.spacing.md,
+    paddingTop: Platform.OS === 'ios' ? (isDesktop ? theme.spacing.xl : theme.spacing.md) : theme.spacing.sm,
+    paddingBottom: theme.spacing.md,
+    minHeight: SCREEN_HEIGHT * 0.9,
   },
   stepContainer: {
     width: '100%',
-    maxWidth: 440,
+    maxWidth: isDesktop ? 520 : isTablet ? 480 : 440,
     alignSelf: 'center',
+    paddingHorizontal: isSmallScreen ? theme.spacing.xs : 0,
   },
   headerSection: {
     alignItems: 'center',
@@ -31,8 +38,8 @@ export const registrationScreenStyles = StyleSheet.create({
     paddingTop: 0,
   },
   iconContainer: {
-    width: 60,
-    height: 60,
+    width: isDesktop ? 80 : isTablet ? 70 : 60,
+    height: isDesktop ? 80 : isTablet ? 70 : 60,
     borderRadius: theme.borderRadius.round,
     backgroundColor: theme.colors.primaryAlpha(0.1),
     justifyContent: 'center',
@@ -40,7 +47,7 @@ export const registrationScreenStyles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   stepTitle: {
-    fontSize: theme.typography.fontSize.xl + 2,
+    fontSize: isDesktop ? theme.typography.fontSize.xxl + 4 : isTablet ? theme.typography.fontSize.xxl : theme.typography.fontSize.xl + 2,
     fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     textAlign: 'center',
@@ -48,11 +55,11 @@ export const registrationScreenStyles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   stepSubtitle: {
-    fontSize: theme.typography.fontSize.sm + 1,
+    fontSize: isDesktop ? theme.typography.fontSize.md : isTablet ? theme.typography.fontSize.sm + 2 : theme.typography.fontSize.sm + 1,
     color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: theme.typography.fontSize.md * theme.typography.lineHeight.tight,
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: isDesktop ? theme.spacing.lg : theme.spacing.md,
   },
   emailHighlight: {
     color: theme.colors.primary,
@@ -69,16 +76,26 @@ export const registrationScreenStyles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: theme.spacing.sm,
+    flexWrap: 'wrap',
+  },
+  rowContainerStacked: {
+    flexDirection: 'column',
   },
   halfWidth: {
     flex: 1,
     marginRight: theme.spacing.xs + 2,
     overflow: 'hidden',
+    minWidth: isSmallScreen ? '100%' : 140,
   },
   halfWidthLast: {
     flex: 1,
     marginLeft: theme.spacing.xs + 2,
     overflow: 'hidden',
+    minWidth: isSmallScreen ? '100%' : 140,
+  },
+  fullWidth: {
+    width: '100%',
+    marginBottom: theme.spacing.sm,
   },
   inputWrapper: {
     marginBottom: theme.spacing.sm,
@@ -89,9 +106,9 @@ export const registrationScreenStyles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: theme.colors.inputBackground,
     borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.sm + 4,
-    paddingVertical: theme.spacing.sm,
-    minHeight: 44,
+    paddingHorizontal: isDesktop ? theme.spacing.md : theme.spacing.sm + 4,
+    paddingVertical: isDesktop ? theme.spacing.md : theme.spacing.sm,
+    minHeight: isDesktop ? 52 : isTablet ? 48 : 44,
     borderWidth: 2,
     borderColor: theme.colors.inputBorder,
   },
@@ -121,7 +138,7 @@ export const registrationScreenStyles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: theme.typography.fontSize.md + 1,
+    fontSize: isDesktop ? theme.typography.fontSize.lg : isTablet ? theme.typography.fontSize.md + 2 : theme.typography.fontSize.md + 1,
     color: theme.colors.textPrimary,
     paddingVertical: 0,
     ...Platform.select({
@@ -231,14 +248,14 @@ export const registrationScreenStyles = StyleSheet.create({
   },
   button: {
     backgroundColor: theme.colors.buttonPrimary,
-    paddingVertical: theme.spacing.sm + 2,
+    paddingVertical: isDesktop ? theme.spacing.md : theme.spacing.sm + 2,
     borderRadius: theme.borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     marginTop: theme.spacing.sm,
     marginBottom: theme.spacing.xs,
-    minHeight: 44,
+    minHeight: isDesktop ? 52 : isTablet ? 48 : 44,
     width: '100%',
     ...Platform.select({
       ios: {
@@ -257,7 +274,7 @@ export const registrationScreenStyles = StyleSheet.create({
   },
   buttonText: {
     color: theme.colors.buttonText,
-    fontSize: theme.typography.fontSize.md + 1,
+    fontSize: isDesktop ? theme.typography.fontSize.lg : isTablet ? theme.typography.fontSize.md + 2 : theme.typography.fontSize.md + 1,
     fontWeight: theme.typography.fontWeight.bold,
     letterSpacing: 0.3,
   },
