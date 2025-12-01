@@ -13,29 +13,30 @@ const {
 const {
   validateRequired,
   validatePhoneNumber,
+  validateEmailFormat,
   validateOTP,
 } = require("../middleware/validator");
 const { asyncHandler } = require("../middleware/errorHandler");
 
 /**
  * Custom validator for registration OTP generation
- * Ensures either phoneNumber or email is provided
+ * Ensures BOTH phoneNumber and email are provided (required for registration)
  */
 const validateRegistrationInput = (req, res, next) => {
   const { phoneNumber, email } = req.body;
 
-  if (!phoneNumber && !email) {
+  if (!phoneNumber) {
     return res.status(400).json({
       success: false,
-      message: "Phone number or email is required",
+      message: "Phone number is required for registration",
       error: "VALIDATION_ERROR",
     });
   }
 
-  if (phoneNumber && email) {
+  if (!email) {
     return res.status(400).json({
       success: false,
-      message: "Provide either phone number or email, not both",
+      message: "Email is required for registration",
       error: "VALIDATION_ERROR",
     });
   }
@@ -67,19 +68,19 @@ router.get("/check-availability", asyncHandler(checkAvailability));
 // Generate OTP for registration
 router.post(
   "/generate-otp",
-  validateRegistrationInput,
-  validatePhoneNumber, // Only validates if phoneNumber is provided
+  validateRegistrationInput, // Requires both email and phone
+  validatePhoneNumber, // Validates phone number format
+  validateEmailFormat, // Validates email format
   asyncHandler(generateRegistrationOTP)
 );
 
 // Verify OTP and complete registration
+// Note: Only email and OTP are needed for verification (phone is stored in OTP record)
 router.post(
   "/verify-otp",
-  validateRegistrationInput,
-  validateRequired(["otp"]),
-  validatePhoneNumber, // Only validates if phoneNumber is provided
-  validateOTP,
-  validateRegistrationCompletion,
+  validateRequired(["email", "otp"]), // Email and OTP are required for verification
+  validateEmailFormat, // Validate email format
+  validateOTP, // Validate OTP format
   asyncHandler(verifyRegistrationOTP)
 );
 

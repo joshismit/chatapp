@@ -370,7 +370,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
       <View style={styles.stepContainer}>
         <View style={styles.headerSection}>
           <View style={styles.iconContainer}>
-            <Ionicons name="person-add" size={40} color={theme.colors.primary} />
+            <Ionicons name="person-add" size={32} color={theme.colors.primary} />
           </View>
           <Text style={styles.stepTitle}>Create Account</Text>
           <Text style={styles.stepSubtitle}>
@@ -490,7 +490,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
                   <View style={styles.requirementRow}>
                     <Ionicons
                       name={password.length >= 8 ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={12}
+                      size={10}
                       color={password.length >= 8 ? theme.colors.success : theme.colors.textTertiary}
                     />
                     <Text style={[styles.passwordRequirementItem, password.length >= 8 && styles.requirementMet]}>
@@ -500,27 +500,27 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
                   <View style={styles.requirementRow}>
                     <Ionicons
                       name={/[A-Z]/.test(password) ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={12}
+                      size={10}
                       color={/[A-Z]/.test(password) ? theme.colors.success : theme.colors.textTertiary}
                     />
                     <Text style={[styles.passwordRequirementItem, /[A-Z]/.test(password) && styles.requirementMet]}>
-                      Uppercase
+                      Upper
                     </Text>
                   </View>
                   <View style={styles.requirementRow}>
                     <Ionicons
                       name={/[a-z]/.test(password) ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={12}
+                      size={10}
                       color={/[a-z]/.test(password) ? theme.colors.success : theme.colors.textTertiary}
                     />
                     <Text style={[styles.passwordRequirementItem, /[a-z]/.test(password) && styles.requirementMet]}>
-                      Lowercase
+                      Lower
                     </Text>
                   </View>
                   <View style={styles.requirementRow}>
                     <Ionicons
                       name={/[0-9]/.test(password) ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={12}
+                      size={10}
                       color={/[0-9]/.test(password) ? theme.colors.success : theme.colors.textTertiary}
                     />
                     <Text style={[styles.passwordRequirementItem, /[0-9]/.test(password) && styles.requirementMet]}>
@@ -556,13 +556,13 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
             <View style={styles.passwordMatchContainer}>
               {password === confirmPassword ? (
                 <View style={styles.passwordMatch}>
-                  <Ionicons name="checkmark-circle" size={18} color={theme.colors.success} />
-                  <Text style={[styles.passwordMatchText, { marginLeft: 8 }]}>Passwords match</Text>
+                  <Ionicons name="checkmark-circle" size={14} color={theme.colors.success} />
+                  <Text style={[styles.passwordMatchText, { marginLeft: 4 }]}>Passwords match</Text>
                 </View>
               ) : (
                 <View style={styles.passwordMatch}>
-                  <Ionicons name="close-circle" size={18} color={theme.colors.error} />
-                  <Text style={[styles.passwordMatchText, styles.passwordMismatch, { marginLeft: 8 }]}>
+                  <Ionicons name="close-circle" size={14} color={theme.colors.error} />
+                  <Text style={[styles.passwordMatchText, styles.passwordMismatch, { marginLeft: 4 }]}>
                     Passwords do not match
                   </Text>
                 </View>
@@ -717,6 +717,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           bounces={false}
+          style={{ flex: 1 }}
         >
           {step === 'details' && renderDetailsStep()}
           {step === 'otp' && renderOtpStep()}

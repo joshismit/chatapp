@@ -98,20 +98,19 @@ const generateRegistrationOTP = async (req, res) => {
       });
     }
 
-    // Must provide either phone or email
-    if (!phoneNumber && !email) {
+    // Both phone and email are required for registration
+    if (!phoneNumber) {
       return res.status(400).json({
         success: false,
-        message: "Phone number or email is required",
+        message: "Phone number is required for registration",
         error: "VALIDATION_ERROR",
       });
     }
 
-    // Cannot provide both
-    if (phoneNumber && email) {
+    if (!email) {
       return res.status(400).json({
         success: false,
-        message: "Provide either phone number or email, not both",
+        message: "Email is required for registration",
         error: "VALIDATION_ERROR",
       });
     }

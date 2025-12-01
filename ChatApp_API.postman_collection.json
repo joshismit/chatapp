@@ -1,0 +1,757 @@
+{
+  "info": {
+    "name": "ChatApp API",
+    "description": "Complete API collection for ChatApp backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Registration",
+      "item": [
+        {
+          "name": "Check Availability (Email)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/register/check-availability?email=test@example.com",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "register", "check-availability"],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "test@example.com"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Check Availability (Phone)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/register/check-availability?phoneNumber=%2B1234567890",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "register", "check-availability"],
+              "query": [
+                {
+                  "key": "phoneNumber",
+                  "value": "+1234567890"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Generate Registration OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phoneNumber\": \"+1234567890\",\n  \"password\": \"SecurePass123\",\n  \"reEnterPassword\": \"SecurePass123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/register/generate-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "register", "generate-otp"]
+            }
+          }
+        },
+        {
+          "name": "Verify Registration OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/register/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "register", "verify-otp"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login (OTP)",
+      "item": [
+        {
+          "name": "Generate Login OTP (Email)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/otp/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "otp", "generate"]
+            }
+          }
+        },
+        {
+          "name": "Generate Login OTP (Phone)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/otp/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "otp", "generate"]
+            }
+          }
+        },
+        {
+          "name": "Verify Login OTP (Email)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/otp/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "otp", "verify"]
+            },
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "if (pm.response.code === 200) {",
+                    "    var jsonData = pm.response.json();",
+                    "    if (jsonData.token) {",
+                    "        pm.collectionVariables.set('authToken', jsonData.token);",
+                    "    }",
+                    "}"
+                  ],
+                  "type": "text/javascript"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "Verify Login OTP (Phone)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+1234567890\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/otp/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "otp", "verify"]
+            },
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "if (pm.response.code === 200) {",
+                    "    var jsonData = pm.response.json();",
+                    "    if (jsonData.token) {",
+                    "        pm.collectionVariables.set('authToken', jsonData.token);",
+                    "    }",
+                    "}"
+                  ],
+                  "type": "text/javascript"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "QR Code",
+      "item": [
+        {
+          "name": "Generate QR Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/qr/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "qr", "generate"]
+            }
+          }
+        },
+        {
+          "name": "Check QR Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/qr/status/:qrToken",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "qr", "status", ":qrToken"],
+              "variable": [
+                {
+                  "key": "qrToken",
+                  "value": "qr_1234567890_abcdef"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Scan QR Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qrToken\": \"qr_1234567890_abcdef\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/qr/scan",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "qr", "scan"]
+            }
+          }
+        },
+        {
+          "name": "Verify QR Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qrToken\": \"qr_1234567890_abcdef\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/qr/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "qr", "verify"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Legacy Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"your-test-token-here\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "login"]
+            }
+          }
+        },
+        {
+          "name": "Generate Test Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user_1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/generate-token",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "generate-token"]
+            }
+          }
+        },
+        {
+          "name": "Verify Token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "verify"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Conversations",
+          "item": [
+            {
+              "name": "Get or Create Conversation",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"otherUserId\": \"user_9876543210\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/chat/conversations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "chat", "conversations"]
+                }
+              }
+            },
+            {
+              "name": "Get All Conversations",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/chat/conversations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "chat", "conversations"]
+                }
+              }
+            },
+            {
+              "name": "Get Conversation by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/chat/conversations/:conversationId",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "chat", "conversations", ":conversationId"],
+                  "variable": [
+                    {
+                      "key": "conversationId",
+                      "value": "conv_1234567890"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Messages",
+          "item": [
+            {
+              "name": "Send Message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"conv_1234567890\",\n  \"text\": \"Hello, how are you?\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/chat/messages",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "chat", "messages"]
+                }
+              }
+            },
+            {
+              "name": "Get Messages",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/chat/conversations/:conversationId/messages?limit=50",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "chat", "conversations", ":conversationId", "messages"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "50"
+                    }
+                  ],
+                  "variable": [
+                    {
+                      "key": "conversationId",
+                      "value": "conv_1234567890"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Update Message Status",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"delivered\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/chat/messages/:messageId/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "chat", "messages", ":messageId", "status"],
+                  "variable": [
+                    {
+                      "key": "messageId",
+                      "value": "msg_1234567890"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Mark Conversation as Read",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/chat/conversations/:conversationId/read",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "chat", "conversations", ":conversationId", "read"],
+                  "variable": [
+                    {
+                      "key": "conversationId",
+                      "value": "conv_1234567890"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Status",
+          "item": [
+            {
+              "name": "Update Online Status",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"isOnline\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/chat/status/online",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "chat", "status", "online"]
+                }
+              }
+            },
+            {
+              "name": "Get User Status",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/chat/users/:userId/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "chat", "users", ":userId", "status"],
+                  "variable": [
+                    {
+                      "key": "userId",
+                      "value": "user_1234567890"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Set Typing Indicator",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"conv_1234567890\",\n  \"isTyping\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/chat/typing",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "chat", "typing"]
+                }
+              }
+            },
+            {
+              "name": "Get Typing Indicators",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/chat/conversations/:conversationId/typing",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "chat", "conversations", ":conversationId", "typing"],
+                  "variable": [
+                    {
+                      "key": "conversationId",
+                      "value": "conv_1234567890"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SSE",
+      "item": [
+        {
+          "name": "Connect to SSE Stream",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sse?conversationId=conv_1234567890",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sse"],
+              "query": [
+                {
+                  "key": "conversationId",
+                  "value": "conv_1234567890"
+                }
+              ]
+            },
+            "description": "Note: SSE requires special handling. Use 'Send and Download' in Postman or test with curl/browser."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Utility",
+      "item": [
+        {
+          "name": "Seed Dummy Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user_1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/seed/dummy-data",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seed", "dummy-data"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+
