@@ -8,7 +8,6 @@ import {
   View,
   Text,
   TextInput,
-  StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -23,8 +22,9 @@ import {
   generateRegistrationOTP,
   verifyRegistrationOTP,
 } from '../../services/api/registrationService';
-import { COLORS } from '../../app/constants';
 import { showSuccessToast, showErrorToast, showInfoToast } from '../../utils/toast';
+import { theme } from '../../theme';
+import { registrationScreenStyles as styles } from './styles/RegistrationScreen.styles';
 
 type RegistrationScreenProps = StackScreenProps<RootStackParamList, 'Registration'>;
 
@@ -120,9 +120,9 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
 
   // Get password strength color
   const getPasswordStrengthColor = (strength: number): string => {
-    if (strength <= 2) return COLORS.ERROR;
-    if (strength <= 4) return COLORS.WARNING;
-    return COLORS.SUCCESS;
+    if (strength <= 2) return theme.colors.error;
+    if (strength <= 4) return theme.colors.warning;
+    return theme.colors.success;
   };
 
   // Get password strength label
@@ -309,7 +309,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
           <Ionicons
             name={icon as any}
             size={20}
-            color={isFocused ? COLORS.PRIMARY : isValid || !hasValue ? '#666' : COLORS.ERROR}
+            color={isFocused ? theme.colors.primary : isValid || !hasValue ? theme.colors.textTertiary : theme.colors.error}
             style={styles.inputIcon}
           />
           <TextInput
@@ -355,7 +355,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
       <View style={styles.stepContainer}>
         <View style={styles.headerSection}>
           <View style={styles.iconContainer}>
-            <Ionicons name="person-add" size={40} color={COLORS.PRIMARY} />
+            <Ionicons name="person-add" size={40} color={theme.colors.primary} />
           </View>
           <Text style={styles.stepTitle}>Create Account</Text>
           <Text style={styles.stepSubtitle}>
@@ -476,7 +476,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
                     <Ionicons
                       name={password.length >= 8 ? 'checkmark-circle' : 'ellipse-outline'}
                       size={12}
-                      color={password.length >= 8 ? COLORS.SUCCESS : '#666'}
+                      color={password.length >= 8 ? theme.colors.success : theme.colors.textTertiary}
                     />
                     <Text style={[styles.passwordRequirementItem, password.length >= 8 && styles.requirementMet]}>
                       8+ chars
@@ -486,7 +486,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
                     <Ionicons
                       name={/[A-Z]/.test(password) ? 'checkmark-circle' : 'ellipse-outline'}
                       size={12}
-                      color={/[A-Z]/.test(password) ? COLORS.SUCCESS : '#666'}
+                      color={/[A-Z]/.test(password) ? theme.colors.success : theme.colors.textTertiary}
                     />
                     <Text style={[styles.passwordRequirementItem, /[A-Z]/.test(password) && styles.requirementMet]}>
                       Uppercase
@@ -496,7 +496,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
                     <Ionicons
                       name={/[a-z]/.test(password) ? 'checkmark-circle' : 'ellipse-outline'}
                       size={12}
-                      color={/[a-z]/.test(password) ? COLORS.SUCCESS : '#666'}
+                      color={/[a-z]/.test(password) ? theme.colors.success : theme.colors.textTertiary}
                     />
                     <Text style={[styles.passwordRequirementItem, /[a-z]/.test(password) && styles.requirementMet]}>
                       Lowercase
@@ -506,7 +506,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
                     <Ionicons
                       name={/[0-9]/.test(password) ? 'checkmark-circle' : 'ellipse-outline'}
                       size={12}
-                      color={/[0-9]/.test(password) ? COLORS.SUCCESS : '#666'}
+                      color={/[0-9]/.test(password) ? theme.colors.success : theme.colors.textTertiary}
                     />
                     <Text style={[styles.passwordRequirementItem, /[0-9]/.test(password) && styles.requirementMet]}>
                       Number
@@ -541,12 +541,12 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
             <View style={styles.passwordMatchContainer}>
               {password === confirmPassword ? (
                 <View style={styles.passwordMatch}>
-                  <Ionicons name="checkmark-circle" size={18} color={COLORS.SUCCESS} />
+                  <Ionicons name="checkmark-circle" size={18} color={theme.colors.success} />
                   <Text style={[styles.passwordMatchText, { marginLeft: 8 }]}>Passwords match</Text>
                 </View>
               ) : (
                 <View style={styles.passwordMatch}>
-                  <Ionicons name="close-circle" size={18} color={COLORS.ERROR} />
+                  <Ionicons name="close-circle" size={18} color={theme.colors.error} />
                   <Text style={[styles.passwordMatchText, styles.passwordMismatch, { marginLeft: 8 }]}>
                     Passwords do not match
                   </Text>
@@ -558,7 +558,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
           {/* Error Message */}
           {error && (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle" size={20} color={COLORS.ERROR} style={{ marginRight: 8 }} />
+              <Ionicons name="alert-circle" size={20} color={theme.colors.error} style={{ marginRight: 8 }} />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
@@ -605,12 +605,12 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
         }}
         activeOpacity={0.7}
       >
-        <Ionicons name="arrow-back" size={24} color={COLORS.PRIMARY} />
+        <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
       </TouchableOpacity>
 
       <View style={styles.headerSection}>
         <View style={styles.iconContainer}>
-          <Ionicons name="lock-closed" size={40} color={COLORS.PRIMARY} />
+          <Ionicons name="lock-closed" size={40} color={theme.colors.primary} />
         </View>
         <Text style={styles.stepTitle}>Verify Your Email</Text>
         <Text style={styles.stepSubtitle}>
@@ -624,7 +624,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
           <Ionicons
             name="keypad-outline"
             size={20}
-            color={focusedField === 'otp' ? COLORS.PRIMARY : '#666'}
+            color={focusedField === 'otp' ? theme.colors.primary : theme.colors.textTertiary}
             style={styles.inputIcon}
           />
           <TextInput
@@ -647,7 +647,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
 
         {otpExpiresIn > 0 && (
           <View style={styles.otpTimerContainer}>
-            <Ionicons name="time-outline" size={16} color="#999" />
+            <Ionicons name="time-outline" size={16} color={theme.colors.textSecondary} />
             <Text style={styles.otpTimer}>
               Code expires in {Math.floor(otpExpiresIn / 60)}:{(otpExpiresIn % 60).toString().padStart(2, '0')}
             </Text>
@@ -656,7 +656,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
 
         {error && (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle" size={20} color={COLORS.ERROR} style={{ marginRight: 8 }} />
+            <Ionicons name="alert-circle" size={20} color={theme.colors.error} style={{ marginRight: 8 }} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
@@ -672,7 +672,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
           ) : (
             <>
               <Text style={styles.buttonText}>Complete Registration</Text>
-              <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.buttonText} style={{ marginLeft: 8 }} />
             </>
           )}
         </TouchableOpacity>
@@ -683,7 +683,7 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
           disabled={loading}
           activeOpacity={0.7}
         >
-          <Ionicons name="refresh-outline" size={16} color={COLORS.PRIMARY} style={{ marginRight: 6 }} />
+          <Ionicons name="refresh-outline" size={16} color={theme.colors.primary} style={{ marginRight: 6 }} />
           <Text style={styles.resendButtonText}>Resend Code</Text>
         </TouchableOpacity>
       </View>
@@ -711,302 +711,4 @@ export default function RegistrationScreen({ navigation, route }: RegistrationSc
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0a0a0a',
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 40 : 20,
-    paddingBottom: 20,
-  },
-  stepContainer: {
-    width: '100%',
-    maxWidth: 440,
-    alignSelf: 'center',
-    flex: 1,
-  },
-  headerSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-    paddingTop: 0,
-  },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(98, 0, 238, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  stepTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 6,
-    letterSpacing: -0.5,
-  },
-  stepSubtitle: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: 20,
-  },
-  emailHighlight: {
-    color: COLORS.PRIMARY,
-    fontWeight: '600',
-  },
-  formSection: {
-    width: '100%',
-    paddingTop: 0,
-  },
-  inputsGroup: {
-    width: '100%',
-  },
-  rowContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  halfWidth: {
-    flex: 1,
-    marginRight: 6,
-    overflow: 'hidden',
-  },
-  halfWidthLast: {
-    flex: 1,
-    marginLeft: 6,
-    overflow: 'hidden',
-  },
-  inputWrapper: {
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    minHeight: 52,
-    borderWidth: 2,
-    borderColor: '#2a2a2a',
-  },
-  inputContainerFocused: {
-    borderColor: COLORS.PRIMARY,
-    backgroundColor: '#1f1f1f',
-    ...Platform.select({
-      ios: {
-        shadowColor: COLORS.PRIMARY,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-      web: {
-        boxShadow: `0 0 0 2px ${COLORS.PRIMARY}40`,
-      },
-    }),
-  },
-  inputContainerError: {
-    borderColor: COLORS.ERROR,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#fff',
-    paddingVertical: 0,
-  },
-  otpInput: {
-    fontSize: 20,
-    letterSpacing: 4,
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  eyeIcon: {
-    padding: 4,
-    marginLeft: 8,
-  },
-  fieldErrorText: {
-    fontSize: 12,
-    color: COLORS.ERROR,
-    marginTop: 6,
-    marginLeft: 4,
-  },
-  passwordStrengthContainer: {
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  passwordStrengthBar: {
-    height: 4,
-    backgroundColor: '#2a2a2a',
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginBottom: 6,
-  },
-  passwordStrengthFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  passwordStrengthText: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'right',
-  },
-  passwordRequirements: {
-    backgroundColor: '#151515',
-    padding: 10,
-    borderRadius: 8,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#2a2a2a',
-  },
-  requirementsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  requirementRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-    width: '48%',
-  },
-  passwordRequirementItem: {
-    fontSize: 11,
-    color: '#666',
-    marginLeft: 6,
-  },
-  requirementMet: {
-    color: COLORS.SUCCESS,
-  },
-  passwordMatchContainer: {
-    marginTop: -2,
-    marginBottom: 2,
-    marginLeft: 4,
-  },
-  passwordMatch: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  passwordMatchText: {
-    fontSize: 13,
-    color: COLORS.SUCCESS,
-    fontWeight: '500',
-  },
-  passwordMismatch: {
-    color: COLORS.ERROR,
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(244, 67, 54, 0.1)',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 2,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(244, 67, 54, 0.3)',
-  },
-  errorText: {
-    flex: 1,
-    fontSize: 14,
-    color: COLORS.ERROR,
-    fontWeight: '500',
-  },
-  button: {
-    backgroundColor: COLORS.PRIMARY,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    marginTop: 8,
-    marginBottom: 6,
-    minHeight: 52,
-    width: '100%',
-    ...Platform.select({
-      ios: {
-        shadowColor: COLORS.PRIMARY,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  loginLinkContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  loginLinkText: {
-    fontSize: 15,
-    color: '#999',
-  },
-  loginLinkBold: {
-    color: COLORS.PRIMARY,
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    padding: 10,
-    marginBottom: 24,
-    borderRadius: 10,
-    backgroundColor: '#1a1a1a',
-    marginLeft: -4,
-  },
-  otpTimerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
-    marginBottom: 24,
-  },
-  otpTimer: {
-    fontSize: 14,
-    color: '#999',
-    marginLeft: 6,
-    fontWeight: '500',
-  },
-  resendButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    paddingVertical: 12,
-  },
-  resendButtonText: {
-    fontSize: 15,
-    color: COLORS.PRIMARY,
-    fontWeight: '600',
-  },
-});
+// Styles are now imported from separate file
