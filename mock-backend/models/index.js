@@ -30,10 +30,25 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
+    firstName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    lastName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     displayName: {
       type: String,
       required: true,
       trim: true,
+    },
+    password: {
+      type: String,
+      required: true,
+      select: false, // Don't return password by default in queries
     },
     isRegistered: {
       type: Boolean,
@@ -281,6 +296,14 @@ const otpSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Temporary registration data (for registration OTPs only)
+    registrationData: {
+      firstName: String,
+      lastName: String,
+      passwordHash: String,
+      phoneNumber: String,
+      email: String,
+    },
   },
   {
     timestamps: true,
@@ -294,12 +317,14 @@ otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 otpSchema.index({ phoneNumber: 1, isUsed: 1, expiresAt: 1 });
 otpSchema.index({ email: 1, isUsed: 1, expiresAt: 1 });
 // Ensure either phoneNumber or email is provided
+// For registration type, both can be provided
 otpSchema.pre("validate", function (next) {
   if (!this.phoneNumber && !this.email) {
     return next(new Error("Either phoneNumber or email must be provided"));
   }
-  if (this.phoneNumber && this.email) {
-    return next(new Error("Cannot provide both phoneNumber and email"));
+  // Allow both for registration type, but not for login type
+  if (this.phoneNumber && this.email && this.type !== "registration") {
+    return next(new Error("Cannot provide both phoneNumber and email for login OTP"));
   }
   next();
 });

@@ -7,8 +7,12 @@ import { apiClient } from './client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface RegistrationOTPRequest {
-  phoneNumber?: string;
-  email?: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  password: string;
+  confirmPassword: string;
 }
 
 export interface RegistrationOTPResponse {
@@ -21,23 +25,23 @@ export interface RegistrationOTPResponse {
 }
 
 export interface VerifyRegistrationOTPRequest {
-  phoneNumber?: string;
-  email?: string;
+  email: string;
   otp: string;
-  displayName: string;
 }
 
 export interface VerifyRegistrationOTPResponse {
   success: boolean;
   userId: string;
-  user: {
-    userId: string;
-    displayName: string;
-    phoneNumber?: string;
-    email?: string;
-    isRegistered: boolean;
-    registrationMethod: 'phone' | 'email';
-  };
+      user: {
+        userId: string;
+        firstName: string;
+        lastName: string;
+        displayName: string;
+        phoneNumber?: string;
+        email?: string;
+        isRegistered: boolean;
+        registrationMethod: 'phone' | 'email';
+      };
   message: string;
   action?: 'login'; // Indicates user needs to login
   error?: string;
@@ -121,9 +125,11 @@ export async function verifyRegistrationOTP(
       userId: '',
       user: {
         userId: '',
+        firstName: '',
+        lastName: '',
         displayName: '',
         isRegistered: false,
-        registrationMethod: request.phoneNumber ? 'phone' : 'email',
+        registrationMethod: 'email',
       },
       message: error.response?.data?.message || 'Failed to complete registration',
       error: error.response?.data?.error,

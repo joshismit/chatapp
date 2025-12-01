@@ -19,7 +19,10 @@ export type ChatStackParamList = {
 };
 
 export type RootStackParamList = {
-  Registration: undefined;
+  Registration: {
+    prefillEmail?: string;
+    prefillPhone?: string;
+  } | undefined;
   Login: undefined;
   Success: undefined;
   MainTabs: NavigatorScreenParams<RootTabParamList>;

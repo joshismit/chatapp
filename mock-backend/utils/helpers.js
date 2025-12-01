@@ -3,6 +3,7 @@
  */
 
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const constants = require("../config/constants");
 
 /**
@@ -109,6 +110,66 @@ const generateMessageId = () => {
   return `msg_${Date.now()}_${generateToken(12)}`;
 };
 
+/**
+ * Hash password using bcrypt
+ * @param {string} password - Plain text password
+ * @returns {Promise<string>} Hashed password
+ */
+const hashPassword = async (password) => {
+  const saltRounds = 10;
+  return await bcrypt.hash(password, saltRounds);
+};
+
+/**
+ * Compare password with hash
+ * @param {string} password - Plain text password
+ * @param {string} hash - Hashed password
+ * @returns {Promise<boolean>} True if password matches
+ */
+const comparePassword = async (password, hash) => {
+  return await bcrypt.compare(password, hash);
+};
+
+/**
+ * Validate password strength
+ * @param {string} password - Password to validate
+ * @returns {object} Validation result with isValid and message
+ */
+const validatePassword = (password) => {
+  if (!password || password.length < 8) {
+    return {
+      isValid: false,
+      message: "Password must be at least 8 characters long",
+    };
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    return {
+      isValid: false,
+      message: "Password must contain at least one uppercase letter",
+    };
+  }
+
+  if (!/[a-z]/.test(password)) {
+    return {
+      isValid: false,
+      message: "Password must contain at least one lowercase letter",
+    };
+  }
+
+  if (!/[0-9]/.test(password)) {
+    return {
+      isValid: false,
+      message: "Password must contain at least one number",
+    };
+  }
+
+  return {
+    isValid: true,
+    message: "Password is valid",
+  };
+};
+
 module.exports = {
   generateToken,
   generateQRToken,
@@ -121,5 +182,8 @@ module.exports = {
   generateUserId,
   generateConversationId,
   generateMessageId,
+  hashPassword,
+  comparePassword,
+  validatePassword,
 };
 

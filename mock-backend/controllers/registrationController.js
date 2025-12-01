@@ -11,6 +11,8 @@ const {
   validatePhoneNumber,
   generateUserId,
   generateAuthToken,
+  hashPassword,
+  validatePassword,
 } = require("../utils/helpers");
 
 /**
@@ -22,11 +24,79 @@ const validateEmail = (email) => {
 };
 
 /**
- * Generate OTP for registration (phone or email)
+ * Generate OTP for registration
+ * Now requires: firstName, lastName, email, phoneNumber, password, confirmPassword
  */
 const generateRegistrationOTP = async (req, res) => {
   try {
-    const { phoneNumber, email } = req.body;
+    const { firstName, lastName, email, phoneNumber, password, confirmPassword } = req.body;
+
+    // Validate all required fields
+    if (!firstName || firstName.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "First name is required (minimum 2 characters)",
+        error: "VALIDATION_ERROR",
+      });
+    }
+
+    if (!lastName || lastName.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Last name is required (minimum 2 characters)",
+        error: "VALIDATION_ERROR",
+      });
+    }
+
+    if (!email || !validateEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid email is required",
+        error: "VALIDATION_ERROR",
+      });
+    }
+
+    if (!phoneNumber || !validatePhoneNumber(phoneNumber)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid phone number is required",
+        error: "VALIDATION_ERROR",
+      });
+    }
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: "Password is required",
+        error: "VALIDATION_ERROR",
+      });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: passwordValidation.message,
+        error: "INVALID_PASSWORD",
+      });
+    }
+
+    if (!confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Please confirm your password",
+        error: "VALIDATION_ERROR",
+      });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Passwords do not match",
+        error: "PASSWORD_MISMATCH",
+      });
+    }
 
     // Must provide either phone or email
     if (!phoneNumber && !email) {
@@ -46,89 +116,77 @@ const generateRegistrationOTP = async (req, res) => {
       });
     }
 
-    let normalizedIdentifier;
-    let identifierField;
+    // Normalize identifiers
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    const normalizedEmail = email.toLowerCase().trim();
 
-    if (phoneNumber) {
-      // Validate phone number format
-      if (!validatePhoneNumber(phoneNumber)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid phone number format",
-          error: "INVALID_PHONE_NUMBER",
-        });
-      }
+    // Check if user already exists (by email or phone)
+    const existingUserByEmail = await User.findOne({
+      email: normalizedEmail,
+      isRegistered: true,
+    });
 
-      normalizedIdentifier = normalizePhoneNumber(phoneNumber);
-      identifierField = "phoneNumber";
-
-      // Check if user already exists
-      const existingUser = await User.findOne({
-        phoneNumber: normalizedIdentifier,
-        isRegistered: true,
+    if (existingUserByEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "User with this email already exists. Please login instead.",
+        error: "USER_EXISTS",
+        action: "login",
       });
-
-      if (existingUser) {
-        return res.status(400).json({
-          success: false,
-          message: "User with this phone number already exists. Please login instead.",
-          error: "USER_EXISTS",
-          action: "login",
-        });
-      }
-    } else if (email) {
-      // Validate email format
-      if (!validateEmail(email)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid email format",
-          error: "INVALID_EMAIL",
-        });
-      }
-
-      normalizedIdentifier = email.toLowerCase().trim();
-      identifierField = "email";
-
-      // Check if user already exists
-      const existingUser = await User.findOne({
-        email: normalizedIdentifier,
-        isRegistered: true,
-      });
-
-      if (existingUser) {
-        return res.status(400).json({
-          success: false,
-          message: "User with this email already exists. Please login instead.",
-          error: "USER_EXISTS",
-          action: "login",
-        });
-      }
     }
+
+    const existingUserByPhone = await User.findOne({
+      phoneNumber: normalizedPhone,
+      isRegistered: true,
+    });
+
+    if (existingUserByPhone) {
+      return res.status(400).json({
+        success: false,
+        message: "User with this phone number already exists. Please login instead.",
+        error: "USER_EXISTS",
+        action: "login",
+      });
+    }
+
+    // Hash password before storing
+    const passwordHash = await hashPassword(password);
 
     // Generate 6-digit OTP
     const otp = generateOTP();
 
-    // Invalidate any existing unused OTPs for this identifier
-    const updateQuery = {
-      [identifierField]: normalizedIdentifier,
-      isUsed: false,
-      type: "registration",
-    };
-    await OTP.updateMany(updateQuery, { isUsed: true });
+    // Invalidate any existing unused OTPs for this email/phone
+    await OTP.updateMany(
+      {
+        $or: [
+          { email: normalizedEmail, isUsed: false, type: "registration" },
+          { phoneNumber: normalizedPhone, isUsed: false, type: "registration" },
+        ],
+      },
+      { isUsed: true }
+    );
 
-    // Create new OTP (expires in 5 minutes)
+    // Create new OTP with registration data (expires in 5 minutes)
     const otpRecord = await OTP.create({
-      [identifierField]: normalizedIdentifier,
+      email: normalizedEmail,
+      phoneNumber: normalizedPhone,
       otp: otp,
       type: "registration",
       expiresAt: new Date(Date.now() + constants.OTP_EXPIRATION),
       isUsed: false,
       attempts: 0,
+      registrationData: {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        passwordHash: passwordHash,
+        phoneNumber: normalizedPhone,
+        email: normalizedEmail,
+      },
     });
 
     // In production, send OTP via SMS/Email service
     console.log(
-      `📱 Registration OTP for ${identifierField === "phoneNumber" ? "Phone" : "Email"} ${normalizedIdentifier}: ${otp}`
+      `📱 Registration OTP for Email: ${normalizedEmail}, Phone: ${normalizedPhone}, OTP: ${otp}`
     );
 
     res.status(200).json({
@@ -137,7 +195,7 @@ const generateRegistrationOTP = async (req, res) => {
       // Remove otp field in production - only for development
       otp: process.env.NODE_ENV === "production" ? undefined : otp,
       expiresIn: constants.OTP_EXPIRATION / 1000, // seconds
-      method: identifierField === "phoneNumber" ? "phone" : "email",
+      method: "email", // Always use email for registration now
     });
   } catch (error) {
     console.error("Registration OTP generation error:", error);
@@ -154,49 +212,30 @@ const generateRegistrationOTP = async (req, res) => {
  */
 const verifyRegistrationOTP = async (req, res) => {
   try {
-    const { phoneNumber, email, otp, displayName } = req.body;
+    const { email, otp } = req.body;
 
-    // Must provide either phone or email
-    if (!phoneNumber && !email) {
+    // Email and OTP are required
+    if (!email) {
       return res.status(400).json({
         success: false,
-        message: "Phone number or email is required",
+        message: "Email is required",
         error: "VALIDATION_ERROR",
       });
     }
 
-    // Cannot provide both
-    if (phoneNumber && email) {
+    if (!otp) {
       return res.status(400).json({
         success: false,
-        message: "Provide either phone number or email, not both",
+        message: "OTP is required",
         error: "VALIDATION_ERROR",
       });
     }
 
-    // Display name is required for registration
-    if (!displayName || displayName.trim().length < 2) {
-      return res.status(400).json({
-        success: false,
-        message: "Display name is required (minimum 2 characters)",
-        error: "VALIDATION_ERROR",
-      });
-    }
+    const normalizedEmail = email.toLowerCase().trim();
 
-    let normalizedIdentifier;
-    let identifierField;
-
-    if (phoneNumber) {
-      normalizedIdentifier = normalizePhoneNumber(phoneNumber);
-      identifierField = "phoneNumber";
-    } else {
-      normalizedIdentifier = email.toLowerCase().trim();
-      identifierField = "email";
-    }
-
-    // Find valid OTP
+    // Find valid OTP with registration data
     const otpRecord = await OTP.findOne({
-      [identifierField]: normalizedIdentifier,
+      email: normalizedEmail,
       isUsed: false,
       expiresAt: { $gt: new Date() },
       type: "registration",
@@ -233,6 +272,17 @@ const verifyRegistrationOTP = async (req, res) => {
       });
     }
 
+    // Check if registration data exists
+    if (!otpRecord.registrationData) {
+      return res.status(400).json({
+        success: false,
+        message: "Registration data not found. Please start registration again.",
+        error: "INVALID_REGISTRATION",
+      });
+    }
+
+    const { firstName, lastName, passwordHash, phoneNumber: regPhone, email: regEmail } = otpRecord.registrationData;
+
     // OTP is valid - mark as used
     otpRecord.isUsed = true;
     otpRecord.verifiedAt = new Date();
@@ -240,8 +290,10 @@ const verifyRegistrationOTP = async (req, res) => {
 
     // Check if user already exists (double check)
     const existingUser = await User.findOne({
-      [identifierField]: normalizedIdentifier,
-      isRegistered: true,
+      $or: [
+        { email: normalizedEmail, isRegistered: true },
+        { phoneNumber: regPhone, isRegistered: true },
+      ],
     });
 
     if (existingUser) {
@@ -253,24 +305,25 @@ const verifyRegistrationOTP = async (req, res) => {
       });
     }
 
+    // Create display name from first and last name
+    const displayName = `${firstName} ${lastName}`.trim();
+
     // Create new user
-    const userId = generateUserId(normalizedIdentifier);
-    const registrationMethod = identifierField === "phoneNumber" ? "phone" : "email";
+    const userId = generateUserId(normalizedEmail);
 
     const userData = {
       userId: userId,
-      displayName: displayName.trim(),
+      firstName: firstName,
+      lastName: lastName,
+      displayName: displayName,
+      email: normalizedEmail,
+      phoneNumber: regPhone,
+      password: passwordHash,
       isOnline: false, // User is not logged in yet
       lastSeen: new Date(),
       isRegistered: true,
-      registrationMethod: registrationMethod,
+      registrationMethod: "email", // Both email and phone are required now
     };
-
-    if (identifierField === "phoneNumber") {
-      userData.phoneNumber = normalizedIdentifier;
-    } else {
-      userData.email = normalizedIdentifier;
-    }
 
     const user = await User.create(userData);
 
@@ -279,6 +332,8 @@ const verifyRegistrationOTP = async (req, res) => {
       userId: user.userId,
       user: {
         userId: user.userId,
+        firstName: user.firstName,
+        lastName: user.lastName,
         displayName: user.displayName,
         phoneNumber: user.phoneNumber,
         email: user.email,

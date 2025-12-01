@@ -27,6 +27,7 @@ import {
 } from '../../services/api/loginService';
 import { checkAvailability } from '../../services/api/registrationService';
 import { COLORS } from '../../app/constants';
+import { showSuccessToast, showErrorToast, showInfoToast } from '../../utils/toast';
 
 // Conditionally import QR code based on platform
 let QRCodeComponent: any = null;
@@ -140,7 +141,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     return emailRegex.test(email);
   };
 
-  // Check if user is registered
+  // Check if user is registered in database
   const handleCheckUser = async () => {
     const identifier = method === 'phone' ? phoneNumber : email;
     
@@ -161,50 +162,66 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
     setLoading(true);
     setError(null);
+    setIsRegistered(null);
 
     try {
-      // Check if user is registered
+      // Step 1: Check if user exists in database and is registered
+      console.log('Checking if user is registered:', identifier);
+      
       const availability = await checkAvailability(
         method === 'phone' ? phoneNumber : undefined,
         method === 'email' ? email : undefined
       );
 
-      if (!availability.available) {
-        // User is registered - proceed with login
+      console.log('Availability check result:', availability);
+
+      // available: false means user IS registered (exists in database)
+      // available: true means user is NOT registered (doesn't exist)
+      if (availability.available === false) {
+        // User IS registered - proceed with login
+        console.log('User is registered, proceeding with login');
         setIsRegistered(true);
         
-        // Desktop/Web: Generate QR code
+        // Step 2: Generate QR code for desktop or OTP for mobile
         if (Platform.OS === 'web') {
+          console.log('Platform is web, generating QR code');
           await handleGenerateQRCode();
         } else {
-          // Mobile: Send OTP
+          console.log('Platform is mobile, generating OTP');
           await handleGenerateOTP();
         }
       } else {
-        // User is not registered - redirect to registration
+        // User is NOT registered - show error and redirect
+        console.log('User is not registered');
         setIsRegistered(false);
-        Alert.alert(
-          'Not Registered',
-          'This phone/email is not registered. Please sign up first.',
-          [
-            {
-              text: 'Go to Sign Up',
-              onPress: () => navigation.navigate('Registration'),
-            },
-            {
-              text: 'Cancel',
-              style: 'cancel',
-              onPress: () => {
-                setStep('input');
-                setIsRegistered(null);
-              },
-            },
-          ]
+        const errorMsg = 'This email/phone is not registered. Please sign up first.';
+        setError(errorMsg);
+        showErrorToast(
+          `This ${method === 'phone' ? 'phone number' : 'email'} is not registered in our database. Please sign up first.`,
+          'Not Registered'
         );
+        
+        // Auto-navigate to registration after showing toast
+        setTimeout(() => {
+          navigation.navigate('Registration', {
+            prefillEmail: method === 'email' ? email : undefined,
+            prefillPhone: method === 'phone' ? phoneNumber : undefined,
+          });
+        }, 2000);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to check user');
+      console.error('Error checking user:', err);
+      const errorMessage = err.message || 'Failed to check if user is registered';
+      setError(errorMessage);
       setIsRegistered(null);
+      
+      // If it's a network error or server error, show helpful message
+      if (err.response?.status === 500 || !err.response) {
+        showErrorToast(
+          'Unable to connect to server. Please check your internet connection and try again.',
+          'Connection Error'
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -245,13 +262,16 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         
         // In development, show OTP if provided
         if (response.otp) {
-          Alert.alert('OTP Generated', `Your OTP is: ${response.otp}\n\n(Development mode)`);
+          showInfoToast(
+            `Your OTP is: ${response.otp}\n\n(Development mode)`,
+            'OTP Generated'
+          );
         } else {
-          Alert.alert(
-            'OTP Sent',
+          showSuccessToast(
             method === 'phone'
               ? `OTP has been sent to ${phoneNumber}`
-              : `OTP has been sent to ${email}`
+              : `OTP has been sent to ${email}`,
+            'OTP Sent'
           );
         }
       } else {
@@ -288,12 +308,17 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
       if (response.success && response.token) {
         // Login successful
+        showSuccessToast('Login successful!', 'Welcome');
         navigation.replace('MainTabs');
       } else {
-        setError(response.message || 'Failed to verify OTP');
+        const errorMsg = response.message || 'Failed to verify OTP';
+        setError(errorMsg);
+        showErrorToast(errorMsg, 'Login Failed');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to verify OTP');
+      const errorMsg = err.message || 'Failed to verify OTP';
+      setError(errorMsg);
+      showErrorToast(errorMsg, 'Login Failed');
     } finally {
       setLoading(false);
     }
@@ -767,5 +792,44 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     marginBottom: 16,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#999',
+  },
+  notRegisteredContainer: {
+    alignItems: 'center',
+    backgroundColor: '#1a0a2e',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.PRIMARY,
+  },
+  notRegisteredText: {
+    fontSize: 14,
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  signUpButton: {
+    backgroundColor: COLORS.PRIMARY,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  signUpButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
